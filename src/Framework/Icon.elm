@@ -54,7 +54,7 @@ introspection =
             , ( icon MobileNotification 32, "icon MobileNotification 32" )
             , ( icon MobileNotification2 32, "icon MobileNotification2 32" )
             , ( icon ChevronDown 32, "icon ChevronDown 32" )
-            , ( icon Search 32, "icon Search 32" )
+            , ( icon Ic_search_black 32, "icon Search 32" )
             ]
           )
         ]
