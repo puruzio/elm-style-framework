@@ -36,72 +36,72 @@ introspection =
         buttonText =
             "Button"
     in
-    { name = "Buttons"
-    , signature = "button : List Modifier -> Maybe msg -> String -> Element msg"
-    , description = "Buttons accept a list of modifiers, a Maybe msg (for example: \"Just DoSomething\") and the text to display inside the button."
-    , usage = "button [ Medium, Success, Outlined ] Nothing \"" ++ buttonText ++ "\""
-    , usageResult = button [ Medium, Success, Outlined ] Nothing buttonText
-    , boxed = False
-    , variations =
-        [ ( "States"
-          , [ ( button [ Primary ] Nothing buttonText, "button [ Primary ] Nothing \"" ++ buttonText ++ "\"" )
-            , ( button [ Primary, Outlined ] Nothing buttonText, "button [ Primary, Outlined ] Nothing \"" ++ buttonText ++ "\"" )
-            , ( button [ Primary, Loading ] Nothing buttonText, "button [ Primary, Loading ] Nothing \"" ++ buttonText ++ "\"" )
-            , ( button [ Primary, Waiting ] Nothing buttonText, "button [ Primary, Waiting ] Nothing \"" ++ buttonText ++ "\"" )
-            , ( button [ Primary, Disabled ] Nothing buttonText, "button [ Primary, Disabled ] Nothing \"" ++ buttonText ++ "\"" )
-            ]
-          )
-        , ( "Colors"
-          , [ ( button [ Muted ] Nothing buttonText, "button [ Muted ] Nothing \"" ++ buttonText ++ "\"" )
-            , ( button [ Primary ] Nothing buttonText, "button [ Primary ] Nothing \"" ++ buttonText ++ "\"" )
-            , ( button [ Success ] Nothing buttonText, "button [ Success ] Nothing \"" ++ buttonText ++ "\"" )
-            , ( button [ Info ] Nothing buttonText, "button [ Info ] Nothing \"" ++ buttonText ++ "\"" )
-            , ( button [ Warning ] Nothing buttonText, "button [ Warning ] Nothing \"" ++ buttonText ++ "\"" )
-            , ( button [ Danger ] Nothing buttonText, "button [ Danger ] Nothing \"" ++ buttonText ++ "\"" )
-            , ( button [] Nothing buttonText, "button [] Nothing \"" ++ buttonText ++ "\"" )
-            ]
-          )
-        , ( "Sizes"
-          , [ ( button [ Small ] Nothing buttonText, "button [ Small ] Nothing \"" ++ buttonText ++ "\"" )
-            , ( button [] Nothing buttonText, "button [] Nothing \"" ++ buttonText ++ "\"" )
-            , ( button [ Medium ] Nothing buttonText, "button [ Medium ] Nothing \"" ++ buttonText ++ "\"" )
-            , ( button [ Large ] Nothing buttonText, "button [ Large ] Nothing \"" ++ buttonText ++ "\"" )
-            ]
-          )
-        , ( "Composed"
-          , [ ( Input.button (buttonAttr [ Primary ]) <|
-                    { onPress = Nothing, label = text "button" }
-              , """-- This is the longest form for
+        { name = "Buttons"
+        , signature = "button : List Modifier -> Maybe msg -> String -> Element msg"
+        , description = "Buttons accept a list of modifiers, a Maybe msg (for example: \"Just DoSomething\") and the text to display inside the button."
+        , usage = "button [ Medium, Success, Outlined ] Nothing \"" ++ buttonText ++ "\""
+        , usageResult = button [ Medium, Success, Outlined ] Nothing buttonText
+        , boxed = False
+        , variations =
+            [ ( "States"
+              , [ ( button [ Primary ] Nothing buttonText, "button [ Primary ] Nothing \"" ++ buttonText ++ "\"" )
+                , ( button [ Primary, Outlined ] Nothing buttonText, "button [ Primary, Outlined ] Nothing \"" ++ buttonText ++ "\"" )
+                , ( button [ Primary, Loading ] Nothing buttonText, "button [ Primary, Loading ] Nothing \"" ++ buttonText ++ "\"" )
+                , ( button [ Primary, Waiting ] Nothing buttonText, "button [ Primary, Waiting ] Nothing \"" ++ buttonText ++ "\"" )
+                , ( button [ Primary, Disabled ] Nothing buttonText, "button [ Primary, Disabled ] Nothing \"" ++ buttonText ++ "\"" )
+                ]
+              )
+            , ( "Colors"
+              , [ ( button [ Muted ] Nothing buttonText, "button [ Muted ] Nothing \"" ++ buttonText ++ "\"" )
+                , ( button [ Primary ] Nothing buttonText, "button [ Primary ] Nothing \"" ++ buttonText ++ "\"" )
+                , ( button [ Success ] Nothing buttonText, "button [ Success ] Nothing \"" ++ buttonText ++ "\"" )
+                , ( button [ Info ] Nothing buttonText, "button [ Info ] Nothing \"" ++ buttonText ++ "\"" )
+                , ( button [ Warning ] Nothing buttonText, "button [ Warning ] Nothing \"" ++ buttonText ++ "\"" )
+                , ( button [ Danger ] Nothing buttonText, "button [ Danger ] Nothing \"" ++ buttonText ++ "\"" )
+                , ( button [] Nothing buttonText, "button [] Nothing \"" ++ buttonText ++ "\"" )
+                ]
+              )
+            , ( "Sizes"
+              , [ ( button [ Small ] Nothing buttonText, "button [ Small ] Nothing \"" ++ buttonText ++ "\"" )
+                , ( button [] Nothing buttonText, "button [] Nothing \"" ++ buttonText ++ "\"" )
+                , ( button [ Medium ] Nothing buttonText, "button [ Medium ] Nothing \"" ++ buttonText ++ "\"" )
+                , ( button [ Large ] Nothing buttonText, "button [ Large ] Nothing \"" ++ buttonText ++ "\"" )
+                ]
+              )
+            , ( "Composed"
+              , [ ( Input.button (buttonAttr [ Primary ]) <|
+                        { onPress = Nothing, label = text "button" }
+                  , """-- This is the longest form for
 -- button [ Primary ] Nothing "Button"
 
 Input.button (buttonAttr [ Primary ]) <|
     { onPress = Nothing, label = text "Button" }"""
-              )
-            , ( el (buttonAttr [ Primary ]) <|
-                    text "Button"
-              , """-- Is possible to use the button
+                  )
+                , ( el (buttonAttr [ Primary ]) <|
+                        text "Button"
+                  , """-- Is possible to use the button
 -- styling also with other elements,
 -- for example with "el":
 
 el (buttonAttr [ Primary ]) <|
-    text "Button\""""
-              )
-            , ( el (buttonAttr [ Danger, Outlined, Medium ]) <| text "Button", "el (buttonAttr [ Danger, Outlined, Medium ]) <| text \"Button\"" )
-            , ( column (buttonAttr [ Warning ] ++ [ spacing 10 ]) [ text "Row 1", text "Row 2" ], """column (buttonAttr [ Warning ] ++ [ spacing 10 ]) [ text "Row 1", text "Row 2" ]""" )
-            , ( column (buttonAttr [ Warning, Waiting ] ++ [ spacing 10 ]) [ text "Row 1", text "Row 2" ], """column (buttonAttr [ Warning, Waiting ] ++ [ spacing 10 ]) [ text "Row 1", text "Row 2" ]""" )
-            , ( row (buttonAttr [ Info ] ++ [ spacing 10 ]) [ text "Col 1", text "Col 2" ], """row (buttonAttr [ Info ] ++ [ spacing 10 ]) [ text "Col 1", text "Col 2" ]""" )
-            , ( Input.button (buttonAttr [ Primary, Danger ]) <|
-                    { onPress = Nothing, label = text "button" }
-              , """-- If conflicting modifiers are given,
+    text "Button"""
+                  )
+                , ( el (buttonAttr [ Danger, Outlined, Medium ]) <| text "Button", "el (buttonAttr [ Danger, Outlined, Medium ]) <| text \"Button\"" )
+                , ( column (buttonAttr [ Warning ] ++ [ spacing 10 ]) [ text "Row 1", text "Row 2" ], """column (buttonAttr [ Warning ] ++ [ spacing 10 ]) [ text "Row 1", text "Row 2" ]""" )
+                , ( column (buttonAttr [ Warning, Waiting ] ++ [ spacing 10 ]) [ text "Row 1", text "Row 2" ], """column (buttonAttr [ Warning, Waiting ] ++ [ spacing 10 ]) [ text "Row 1", text "Row 2" ]""" )
+                , ( row (buttonAttr [ Info ] ++ [ spacing 10 ]) [ text "Col 1", text "Col 2" ], """row (buttonAttr [ Info ] ++ [ spacing 10 ]) [ text "Col 1", text "Col 2" ]""" )
+                , ( Input.button (buttonAttr [ Primary, Danger ]) <|
+                        { onPress = Nothing, label = text "button" }
+                  , """-- If conflicting modifiers are given,
 -- only the last one is taken in consideration
 
 Input.button (buttonAttr [ Primary, Danger ]) <|
     { onPress = Nothing, label = text "button" }"""
+                  )
+                ]
               )
             ]
-          )
-        ]
-    }
+        }
 
 
 type Size
@@ -360,14 +360,14 @@ buttonAttr modifiers =
             case conf.state of
                 StateLoading ->
                     [ inFront
-                        (el [ centerY, centerX ] <|
+                        (el [ centerY, center ] <|
                             Spinner.spinner Spinner.Rotation fontSize spinnerColor
                         )
                     ]
 
                 StateWaiting ->
                     [ inFront
-                        (el [ centerY, centerX ] <|
+                        (el [ centerY, center ] <|
                             Spinner.spinner Spinner.ThreeCircles fontSize spinnerColor
                         )
                     ]
@@ -375,17 +375,17 @@ buttonAttr modifiers =
                 _ ->
                     []
     in
-    [ Font.size fontSize
-    , Font.color fontColor
-    , mouseOver
-        [ Font.color fontMouseOverColor
-        , Background.color backgroundMouseOverColor
-        , Border.color borderMouseOverColor
+        [ Font.size fontSize
+        , Font.color fontColor
+        , mouseOver
+            [ Font.color fontMouseOverColor
+            , Background.color backgroundMouseOverColor
+            , Border.color borderMouseOverColor
+            ]
+        , Background.color backgroundColor
+        , paddingXY (Tuple.first buttonPadding) (Tuple.second buttonPadding)
+        , Border.rounded borderRounded
+        , Border.width 1
+        , Border.color borderColor
         ]
-    , Background.color backgroundColor
-    , paddingXY (Tuple.first buttonPadding) (Tuple.second buttonPadding)
-    , Border.rounded borderRounded
-    , Border.width 1
-    , Border.color borderColor
-    ]
-        ++ inFrontAddon
+            ++ inFrontAddon

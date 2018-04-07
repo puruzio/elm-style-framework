@@ -3,3 +3,4 @@ documentation.json
 IGNORED.md
 svg
 .history
+node_modules

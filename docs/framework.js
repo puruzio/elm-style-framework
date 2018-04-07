@@ -8675,3965 +8675,6 @@ return {
 
 }();
 
-var _elm_lang$virtual_dom$Native_Debug = function() {
-
-
-// IMPORT / EXPORT
-
-function unsafeCoerce(value)
-{
-	return value;
-}
-
-var upload = _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)
-{
-	var element = document.createElement('input');
-	element.setAttribute('type', 'file');
-	element.setAttribute('accept', 'text/json');
-	element.style.display = 'none';
-	element.addEventListener('change', function(event)
-	{
-		var fileReader = new FileReader();
-		fileReader.onload = function(e)
-		{
-			callback(_elm_lang$core$Native_Scheduler.succeed(e.target.result));
-		};
-		fileReader.readAsText(event.target.files[0]);
-		document.body.removeChild(element);
-	});
-	document.body.appendChild(element);
-	element.click();
-});
-
-function download(historyLength, json)
-{
-	return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)
-	{
-		var fileName = 'history-' + historyLength + '.txt';
-		var jsonString = JSON.stringify(json);
-		var mime = 'text/plain;charset=utf-8';
-		var done = _elm_lang$core$Native_Scheduler.succeed(_elm_lang$core$Native_Utils.Tuple0);
-
-		// for IE10+
-		if (navigator.msSaveBlob)
-		{
-			navigator.msSaveBlob(new Blob([jsonString], {type: mime}), fileName);
-			return callback(done);
-		}
-
-		// for HTML5
-		var element = document.createElement('a');
-		element.setAttribute('href', 'data:' + mime + ',' + encodeURIComponent(jsonString));
-		element.setAttribute('download', fileName);
-		element.style.display = 'none';
-		document.body.appendChild(element);
-		element.click();
-		document.body.removeChild(element);
-		callback(done);
-	});
-}
-
-
-// POPOUT
-
-function messageToString(value)
-{
-	switch (typeof value)
-	{
-		case 'boolean':
-			return value ? 'True' : 'False';
-		case 'number':
-			return value + '';
-		case 'string':
-			return '"' + addSlashes(value, false) + '"';
-	}
-	if (value instanceof String)
-	{
-		return '\'' + addSlashes(value, true) + '\'';
-	}
-	if (typeof value !== 'object' || value === null || !('ctor' in value))
-	{
-		return '…';
-	}
-
-	var ctorStarter = value.ctor.substring(0, 5);
-	if (ctorStarter === '_Tupl' || ctorStarter === '_Task')
-	{
-		return '…'
-	}
-	if (['_Array', '<decoder>', '_Process', '::', '[]', 'Set_elm_builtin', 'RBNode_elm_builtin', 'RBEmpty_elm_builtin'].indexOf(value.ctor) >= 0)
-	{
-		return '…';
-	}
-
-	var keys = Object.keys(value);
-	switch (keys.length)
-	{
-		case 1:
-			return value.ctor;
-		case 2:
-			return value.ctor + ' ' + messageToString(value._0);
-		default:
-			return value.ctor + ' … ' + messageToString(value[keys[keys.length - 1]]);
-	}
-}
-
-
-function primitive(str)
-{
-	return { ctor: 'Primitive', _0: str };
-}
-
-
-function init(value)
-{
-	var type = typeof value;
-
-	if (type === 'boolean')
-	{
-		return {
-			ctor: 'Constructor',
-			_0: _elm_lang$core$Maybe$Just(value ? 'True' : 'False'),
-			_1: true,
-			_2: _elm_lang$core$Native_List.Nil
-		};
-	}
-
-	if (type === 'number')
-	{
-		return primitive(value + '');
-	}
-
-	if (type === 'string')
-	{
-		return { ctor: 'S', _0: '"' + addSlashes(value, false) + '"' };
-	}
-
-	if (value instanceof String)
-	{
-		return { ctor: 'S', _0: "'" + addSlashes(value, true) + "'" };
-	}
-
-	if (value instanceof Date)
-	{
-		return primitive('<' + value.toString() + '>');
-	}
-
-	if (value === null)
-	{
-		return primitive('XXX');
-	}
-
-	if (type === 'object' && 'ctor' in value)
-	{
-		var ctor = value.ctor;
-
-		if (ctor === '::' || ctor === '[]')
-		{
-			return {
-				ctor: 'Sequence',
-				_0: {ctor: 'ListSeq'},
-				_1: true,
-				_2: A2(_elm_lang$core$List$map, init, value)
-			};
-		}
-
-		if (ctor === 'Set_elm_builtin')
-		{
-			return {
-				ctor: 'Sequence',
-				_0: {ctor: 'SetSeq'},
-				_1: true,
-				_2: A3(_elm_lang$core$Set$foldr, initCons, _elm_lang$core$Native_List.Nil, value)
-			};
-		}
-
-		if (ctor === 'RBNode_elm_builtin' || ctor == 'RBEmpty_elm_builtin')
-		{
-			return {
-				ctor: 'Dictionary',
-				_0: true,
-				_1: A3(_elm_lang$core$Dict$foldr, initKeyValueCons, _elm_lang$core$Native_List.Nil, value)
-			};
-		}
-
-		if (ctor === '_Array')
-		{
-			return {
-				ctor: 'Sequence',
-				_0: {ctor: 'ArraySeq'},
-				_1: true,
-				_2: A3(_elm_lang$core$Array$foldr, initCons, _elm_lang$core$Native_List.Nil, value)
-			};
-		}
-
-		var ctorStarter = value.ctor.substring(0, 5);
-		if (ctorStarter === '_Task')
-		{
-			return primitive('<task>');
-		}
-
-		if (ctor === '<decoder>')
-		{
-			return primitive(ctor);
-		}
-
-		if (ctor === '_Process')
-		{
-			return primitive('<process>');
-		}
-
-		var list = _elm_lang$core$Native_List.Nil;
-		for (var i in value)
-		{
-			if (i === 'ctor') continue;
-			list = _elm_lang$core$Native_List.Cons(init(value[i]), list);
-		}
-		return {
-			ctor: 'Constructor',
-			_0: ctorStarter === '_Tupl' ? _elm_lang$core$Maybe$Nothing : _elm_lang$core$Maybe$Just(ctor),
-			_1: true,
-			_2: _elm_lang$core$List$reverse(list)
-		};
-	}
-
-	if (type === 'object')
-	{
-		var dict = _elm_lang$core$Dict$empty;
-		for (var i in value)
-		{
-			dict = A3(_elm_lang$core$Dict$insert, i, init(value[i]), dict);
-		}
-		return { ctor: 'Record', _0: true, _1: dict };
-	}
-
-	return primitive('XXX');
-}
-
-var initCons = F2(initConsHelp);
-
-function initConsHelp(value, list)
-{
-	return _elm_lang$core$Native_List.Cons(init(value), list);
-}
-
-var initKeyValueCons = F3(initKeyValueConsHelp);
-
-function initKeyValueConsHelp(key, value, list)
-{
-	return _elm_lang$core$Native_List.Cons(
-		_elm_lang$core$Native_Utils.Tuple2(init(key), init(value)),
-		list
-	);
-}
-
-function addSlashes(str, isChar)
-{
-	var s = str.replace(/\\/g, '\\\\')
-			  .replace(/\n/g, '\\n')
-			  .replace(/\t/g, '\\t')
-			  .replace(/\r/g, '\\r')
-			  .replace(/\v/g, '\\v')
-			  .replace(/\0/g, '\\0');
-	if (isChar)
-	{
-		return s.replace(/\'/g, '\\\'');
-	}
-	else
-	{
-		return s.replace(/\"/g, '\\"');
-	}
-}
-
-
-return {
-	upload: upload,
-	download: F2(download),
-	unsafeCoerce: unsafeCoerce,
-	messageToString: messageToString,
-	init: init
-}
-
-}();
-
-var _elm_lang$virtual_dom$VirtualDom_Helpers$keyedNode = _elm_lang$virtual_dom$Native_VirtualDom.keyedNode;
-var _elm_lang$virtual_dom$VirtualDom_Helpers$lazy3 = _elm_lang$virtual_dom$Native_VirtualDom.lazy3;
-var _elm_lang$virtual_dom$VirtualDom_Helpers$lazy2 = _elm_lang$virtual_dom$Native_VirtualDom.lazy2;
-var _elm_lang$virtual_dom$VirtualDom_Helpers$lazy = _elm_lang$virtual_dom$Native_VirtualDom.lazy;
-var _elm_lang$virtual_dom$VirtualDom_Helpers$defaultOptions = {stopPropagation: false, preventDefault: false};
-var _elm_lang$virtual_dom$VirtualDom_Helpers$onWithOptions = _elm_lang$virtual_dom$Native_VirtualDom.on;
-var _elm_lang$virtual_dom$VirtualDom_Helpers$on = F2(
-	function (eventName, decoder) {
-		return A3(_elm_lang$virtual_dom$VirtualDom_Helpers$onWithOptions, eventName, _elm_lang$virtual_dom$VirtualDom_Helpers$defaultOptions, decoder);
-	});
-var _elm_lang$virtual_dom$VirtualDom_Helpers$onClick = function (msg) {
-	return A2(
-		_elm_lang$virtual_dom$VirtualDom_Helpers$on,
-		'click',
-		_elm_lang$core$Json_Decode$succeed(msg));
-};
-var _elm_lang$virtual_dom$VirtualDom_Helpers$style = _elm_lang$virtual_dom$Native_VirtualDom.style;
-var _elm_lang$virtual_dom$VirtualDom_Helpers$attribute = _elm_lang$virtual_dom$Native_VirtualDom.attribute;
-var _elm_lang$virtual_dom$VirtualDom_Helpers$id = _elm_lang$virtual_dom$VirtualDom_Helpers$attribute('id');
-var _elm_lang$virtual_dom$VirtualDom_Helpers$property = _elm_lang$virtual_dom$Native_VirtualDom.property;
-var _elm_lang$virtual_dom$VirtualDom_Helpers$class = function (name) {
-	return A2(
-		_elm_lang$virtual_dom$VirtualDom_Helpers$property,
-		'className',
-		_elm_lang$core$Json_Encode$string(name));
-};
-var _elm_lang$virtual_dom$VirtualDom_Helpers$href = function (name) {
-	return A2(
-		_elm_lang$virtual_dom$VirtualDom_Helpers$property,
-		'href',
-		_elm_lang$core$Json_Encode$string(name));
-};
-var _elm_lang$virtual_dom$VirtualDom_Helpers$map = _elm_lang$virtual_dom$Native_VirtualDom.map;
-var _elm_lang$virtual_dom$VirtualDom_Helpers$text = _elm_lang$virtual_dom$Native_VirtualDom.text;
-var _elm_lang$virtual_dom$VirtualDom_Helpers$node = _elm_lang$virtual_dom$Native_VirtualDom.node;
-var _elm_lang$virtual_dom$VirtualDom_Helpers$div = _elm_lang$virtual_dom$VirtualDom_Helpers$node('div');
-var _elm_lang$virtual_dom$VirtualDom_Helpers$span = _elm_lang$virtual_dom$VirtualDom_Helpers$node('span');
-var _elm_lang$virtual_dom$VirtualDom_Helpers$a = _elm_lang$virtual_dom$VirtualDom_Helpers$node('a');
-var _elm_lang$virtual_dom$VirtualDom_Helpers$h1 = _elm_lang$virtual_dom$VirtualDom_Helpers$node('h1');
-var _elm_lang$virtual_dom$VirtualDom_Helpers$Options = F2(
-	function (a, b) {
-		return {stopPropagation: a, preventDefault: b};
-	});
-var _elm_lang$virtual_dom$VirtualDom_Helpers$Node = {ctor: 'Node'};
-var _elm_lang$virtual_dom$VirtualDom_Helpers$Property = {ctor: 'Property'};
-
-var _elm_lang$virtual_dom$VirtualDom_Expando$purple = _elm_lang$virtual_dom$VirtualDom_Helpers$style(
-	{
-		ctor: '::',
-		_0: {ctor: '_Tuple2', _0: 'color', _1: 'rgb(136, 19, 145)'},
-		_1: {ctor: '[]'}
-	});
-var _elm_lang$virtual_dom$VirtualDom_Expando$blue = _elm_lang$virtual_dom$VirtualDom_Helpers$style(
-	{
-		ctor: '::',
-		_0: {ctor: '_Tuple2', _0: 'color', _1: 'rgb(28, 0, 207)'},
-		_1: {ctor: '[]'}
-	});
-var _elm_lang$virtual_dom$VirtualDom_Expando$red = _elm_lang$virtual_dom$VirtualDom_Helpers$style(
-	{
-		ctor: '::',
-		_0: {ctor: '_Tuple2', _0: 'color', _1: 'rgb(196, 26, 22)'},
-		_1: {ctor: '[]'}
-	});
-var _elm_lang$virtual_dom$VirtualDom_Expando$leftPad = function (maybeKey) {
-	var _p0 = maybeKey;
-	if (_p0.ctor === 'Nothing') {
-		return _elm_lang$virtual_dom$VirtualDom_Helpers$style(
-			{ctor: '[]'});
-	} else {
-		return _elm_lang$virtual_dom$VirtualDom_Helpers$style(
-			{
-				ctor: '::',
-				_0: {ctor: '_Tuple2', _0: 'padding-left', _1: '4ch'},
-				_1: {ctor: '[]'}
-			});
-	}
-};
-var _elm_lang$virtual_dom$VirtualDom_Expando$makeArrow = function (arrow) {
-	return A2(
-		_elm_lang$virtual_dom$VirtualDom_Helpers$span,
-		{
-			ctor: '::',
-			_0: _elm_lang$virtual_dom$VirtualDom_Helpers$style(
-				{
-					ctor: '::',
-					_0: {ctor: '_Tuple2', _0: 'color', _1: '#777'},
-					_1: {
-						ctor: '::',
-						_0: {ctor: '_Tuple2', _0: 'padding-left', _1: '2ch'},
-						_1: {
-							ctor: '::',
-							_0: {ctor: '_Tuple2', _0: 'width', _1: '2ch'},
-							_1: {
-								ctor: '::',
-								_0: {ctor: '_Tuple2', _0: 'display', _1: 'inline-block'},
-								_1: {ctor: '[]'}
-							}
-						}
-					}
-				}),
-			_1: {ctor: '[]'}
-		},
-		{
-			ctor: '::',
-			_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(arrow),
-			_1: {ctor: '[]'}
-		});
-};
-var _elm_lang$virtual_dom$VirtualDom_Expando$lineStarter = F3(
-	function (maybeKey, maybeIsClosed, description) {
-		var arrow = function () {
-			var _p1 = maybeIsClosed;
-			if (_p1.ctor === 'Nothing') {
-				return _elm_lang$virtual_dom$VirtualDom_Expando$makeArrow('');
-			} else {
-				if (_p1._0 === true) {
-					return _elm_lang$virtual_dom$VirtualDom_Expando$makeArrow('▸');
-				} else {
-					return _elm_lang$virtual_dom$VirtualDom_Expando$makeArrow('▾');
-				}
-			}
-		}();
-		var _p2 = maybeKey;
-		if (_p2.ctor === 'Nothing') {
-			return {ctor: '::', _0: arrow, _1: description};
-		} else {
-			return {
-				ctor: '::',
-				_0: arrow,
-				_1: {
-					ctor: '::',
-					_0: A2(
-						_elm_lang$virtual_dom$VirtualDom_Helpers$span,
-						{
-							ctor: '::',
-							_0: _elm_lang$virtual_dom$VirtualDom_Expando$purple,
-							_1: {ctor: '[]'}
-						},
-						{
-							ctor: '::',
-							_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(_p2._0),
-							_1: {ctor: '[]'}
-						}),
-					_1: {
-						ctor: '::',
-						_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(' = '),
-						_1: description
-					}
-				}
-			};
-		}
-	});
-var _elm_lang$virtual_dom$VirtualDom_Expando$viewExtraTinyRecord = F3(
-	function (length, starter, entries) {
-		var _p3 = entries;
-		if (_p3.ctor === '[]') {
-			return {
-				ctor: '_Tuple2',
-				_0: length + 1,
-				_1: {
-					ctor: '::',
-					_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text('}'),
-					_1: {ctor: '[]'}
-				}
-			};
-		} else {
-			var _p5 = _p3._0;
-			var nextLength = (length + _elm_lang$core$String$length(_p5)) + 1;
-			if (_elm_lang$core$Native_Utils.cmp(nextLength, 18) > 0) {
-				return {
-					ctor: '_Tuple2',
-					_0: length + 2,
-					_1: {
-						ctor: '::',
-						_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text('…}'),
-						_1: {ctor: '[]'}
-					}
-				};
-			} else {
-				var _p4 = A3(_elm_lang$virtual_dom$VirtualDom_Expando$viewExtraTinyRecord, nextLength, ',', _p3._1);
-				var finalLength = _p4._0;
-				var otherNodes = _p4._1;
-				return {
-					ctor: '_Tuple2',
-					_0: finalLength,
-					_1: {
-						ctor: '::',
-						_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(starter),
-						_1: {
-							ctor: '::',
-							_0: A2(
-								_elm_lang$virtual_dom$VirtualDom_Helpers$span,
-								{
-									ctor: '::',
-									_0: _elm_lang$virtual_dom$VirtualDom_Expando$purple,
-									_1: {ctor: '[]'}
-								},
-								{
-									ctor: '::',
-									_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(_p5),
-									_1: {ctor: '[]'}
-								}),
-							_1: otherNodes
-						}
-					}
-				};
-			}
-		}
-	});
-var _elm_lang$virtual_dom$VirtualDom_Expando$elideMiddle = function (str) {
-	return (_elm_lang$core$Native_Utils.cmp(
-		_elm_lang$core$String$length(str),
-		18) < 1) ? str : A2(
-		_elm_lang$core$Basics_ops['++'],
-		A2(_elm_lang$core$String$left, 8, str),
-		A2(
-			_elm_lang$core$Basics_ops['++'],
-			'...',
-			A2(_elm_lang$core$String$right, 8, str)));
-};
-var _elm_lang$virtual_dom$VirtualDom_Expando$viewTinyHelp = function (str) {
-	return {
-		ctor: '_Tuple2',
-		_0: _elm_lang$core$String$length(str),
-		_1: {
-			ctor: '::',
-			_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(str),
-			_1: {ctor: '[]'}
-		}
-	};
-};
-var _elm_lang$virtual_dom$VirtualDom_Expando$updateIndex = F3(
-	function (n, func, list) {
-		var _p6 = list;
-		if (_p6.ctor === '[]') {
-			return {ctor: '[]'};
-		} else {
-			var _p8 = _p6._1;
-			var _p7 = _p6._0;
-			return (_elm_lang$core$Native_Utils.cmp(n, 0) < 1) ? {
-				ctor: '::',
-				_0: func(_p7),
-				_1: _p8
-			} : {
-				ctor: '::',
-				_0: _p7,
-				_1: A3(_elm_lang$virtual_dom$VirtualDom_Expando$updateIndex, n - 1, func, _p8)
-			};
-		}
-	});
-var _elm_lang$virtual_dom$VirtualDom_Expando$seqTypeToString = F2(
-	function (n, seqType) {
-		var _p9 = seqType;
-		switch (_p9.ctor) {
-			case 'ListSeq':
-				return A2(
-					_elm_lang$core$Basics_ops['++'],
-					'List(',
-					A2(
-						_elm_lang$core$Basics_ops['++'],
-						_elm_lang$core$Basics$toString(n),
-						')'));
-			case 'SetSeq':
-				return A2(
-					_elm_lang$core$Basics_ops['++'],
-					'Set(',
-					A2(
-						_elm_lang$core$Basics_ops['++'],
-						_elm_lang$core$Basics$toString(n),
-						')'));
-			default:
-				return A2(
-					_elm_lang$core$Basics_ops['++'],
-					'Array(',
-					A2(
-						_elm_lang$core$Basics_ops['++'],
-						_elm_lang$core$Basics$toString(n),
-						')'));
-		}
-	});
-var _elm_lang$virtual_dom$VirtualDom_Expando$viewTiny = function (value) {
-	var _p10 = value;
-	switch (_p10.ctor) {
-		case 'S':
-			var str = _elm_lang$virtual_dom$VirtualDom_Expando$elideMiddle(_p10._0);
-			return {
-				ctor: '_Tuple2',
-				_0: _elm_lang$core$String$length(str),
-				_1: {
-					ctor: '::',
-					_0: A2(
-						_elm_lang$virtual_dom$VirtualDom_Helpers$span,
-						{
-							ctor: '::',
-							_0: _elm_lang$virtual_dom$VirtualDom_Expando$red,
-							_1: {ctor: '[]'}
-						},
-						{
-							ctor: '::',
-							_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(str),
-							_1: {ctor: '[]'}
-						}),
-					_1: {ctor: '[]'}
-				}
-			};
-		case 'Primitive':
-			var _p11 = _p10._0;
-			return {
-				ctor: '_Tuple2',
-				_0: _elm_lang$core$String$length(_p11),
-				_1: {
-					ctor: '::',
-					_0: A2(
-						_elm_lang$virtual_dom$VirtualDom_Helpers$span,
-						{
-							ctor: '::',
-							_0: _elm_lang$virtual_dom$VirtualDom_Expando$blue,
-							_1: {ctor: '[]'}
-						},
-						{
-							ctor: '::',
-							_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(_p11),
-							_1: {ctor: '[]'}
-						}),
-					_1: {ctor: '[]'}
-				}
-			};
-		case 'Sequence':
-			return _elm_lang$virtual_dom$VirtualDom_Expando$viewTinyHelp(
-				A2(
-					_elm_lang$virtual_dom$VirtualDom_Expando$seqTypeToString,
-					_elm_lang$core$List$length(_p10._2),
-					_p10._0));
-		case 'Dictionary':
-			return _elm_lang$virtual_dom$VirtualDom_Expando$viewTinyHelp(
-				A2(
-					_elm_lang$core$Basics_ops['++'],
-					'Dict(',
-					A2(
-						_elm_lang$core$Basics_ops['++'],
-						_elm_lang$core$Basics$toString(
-							_elm_lang$core$List$length(_p10._1)),
-						')')));
-		case 'Record':
-			return _elm_lang$virtual_dom$VirtualDom_Expando$viewTinyRecord(_p10._1);
-		default:
-			if (_p10._2.ctor === '[]') {
-				return _elm_lang$virtual_dom$VirtualDom_Expando$viewTinyHelp(
-					A2(_elm_lang$core$Maybe$withDefault, 'Unit', _p10._0));
-			} else {
-				return _elm_lang$virtual_dom$VirtualDom_Expando$viewTinyHelp(
-					function () {
-						var _p12 = _p10._0;
-						if (_p12.ctor === 'Nothing') {
-							return A2(
-								_elm_lang$core$Basics_ops['++'],
-								'Tuple(',
-								A2(
-									_elm_lang$core$Basics_ops['++'],
-									_elm_lang$core$Basics$toString(
-										_elm_lang$core$List$length(_p10._2)),
-									')'));
-						} else {
-							return A2(_elm_lang$core$Basics_ops['++'], _p12._0, ' …');
-						}
-					}());
-			}
-	}
-};
-var _elm_lang$virtual_dom$VirtualDom_Expando$viewTinyRecord = function (record) {
-	return _elm_lang$core$Dict$isEmpty(record) ? {
-		ctor: '_Tuple2',
-		_0: 2,
-		_1: {
-			ctor: '::',
-			_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text('{}'),
-			_1: {ctor: '[]'}
-		}
-	} : A3(
-		_elm_lang$virtual_dom$VirtualDom_Expando$viewTinyRecordHelp,
-		0,
-		'{ ',
-		_elm_lang$core$Dict$toList(record));
-};
-var _elm_lang$virtual_dom$VirtualDom_Expando$viewTinyRecordHelp = F3(
-	function (length, starter, entries) {
-		var _p13 = entries;
-		if (_p13.ctor === '[]') {
-			return {
-				ctor: '_Tuple2',
-				_0: length + 2,
-				_1: {
-					ctor: '::',
-					_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(' }'),
-					_1: {ctor: '[]'}
-				}
-			};
-		} else {
-			var _p16 = _p13._0._0;
-			var _p14 = _elm_lang$virtual_dom$VirtualDom_Expando$viewExtraTiny(_p13._0._1);
-			var valueLen = _p14._0;
-			var valueNodes = _p14._1;
-			var fieldLen = _elm_lang$core$String$length(_p16);
-			var newLength = ((length + fieldLen) + valueLen) + 5;
-			if (_elm_lang$core$Native_Utils.cmp(newLength, 60) > 0) {
-				return {
-					ctor: '_Tuple2',
-					_0: length + 4,
-					_1: {
-						ctor: '::',
-						_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(', … }'),
-						_1: {ctor: '[]'}
-					}
-				};
-			} else {
-				var _p15 = A3(_elm_lang$virtual_dom$VirtualDom_Expando$viewTinyRecordHelp, newLength, ', ', _p13._1);
-				var finalLength = _p15._0;
-				var otherNodes = _p15._1;
-				return {
-					ctor: '_Tuple2',
-					_0: finalLength,
-					_1: {
-						ctor: '::',
-						_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(starter),
-						_1: {
-							ctor: '::',
-							_0: A2(
-								_elm_lang$virtual_dom$VirtualDom_Helpers$span,
-								{
-									ctor: '::',
-									_0: _elm_lang$virtual_dom$VirtualDom_Expando$purple,
-									_1: {ctor: '[]'}
-								},
-								{
-									ctor: '::',
-									_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(_p16),
-									_1: {ctor: '[]'}
-								}),
-							_1: {
-								ctor: '::',
-								_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(' = '),
-								_1: {
-									ctor: '::',
-									_0: A2(
-										_elm_lang$virtual_dom$VirtualDom_Helpers$span,
-										{ctor: '[]'},
-										valueNodes),
-									_1: otherNodes
-								}
-							}
-						}
-					}
-				};
-			}
-		}
-	});
-var _elm_lang$virtual_dom$VirtualDom_Expando$viewExtraTiny = function (value) {
-	var _p17 = value;
-	if (_p17.ctor === 'Record') {
-		return A3(
-			_elm_lang$virtual_dom$VirtualDom_Expando$viewExtraTinyRecord,
-			0,
-			'{',
-			_elm_lang$core$Dict$keys(_p17._1));
-	} else {
-		return _elm_lang$virtual_dom$VirtualDom_Expando$viewTiny(value);
-	}
-};
-var _elm_lang$virtual_dom$VirtualDom_Expando$Constructor = F3(
-	function (a, b, c) {
-		return {ctor: 'Constructor', _0: a, _1: b, _2: c};
-	});
-var _elm_lang$virtual_dom$VirtualDom_Expando$Record = F2(
-	function (a, b) {
-		return {ctor: 'Record', _0: a, _1: b};
-	});
-var _elm_lang$virtual_dom$VirtualDom_Expando$Dictionary = F2(
-	function (a, b) {
-		return {ctor: 'Dictionary', _0: a, _1: b};
-	});
-var _elm_lang$virtual_dom$VirtualDom_Expando$Sequence = F3(
-	function (a, b, c) {
-		return {ctor: 'Sequence', _0: a, _1: b, _2: c};
-	});
-var _elm_lang$virtual_dom$VirtualDom_Expando$initHelp = F2(
-	function (isOuter, expando) {
-		var _p18 = expando;
-		switch (_p18.ctor) {
-			case 'S':
-				return expando;
-			case 'Primitive':
-				return expando;
-			case 'Sequence':
-				var _p20 = _p18._0;
-				var _p19 = _p18._2;
-				return isOuter ? A3(
-					_elm_lang$virtual_dom$VirtualDom_Expando$Sequence,
-					_p20,
-					false,
-					A2(
-						_elm_lang$core$List$map,
-						_elm_lang$virtual_dom$VirtualDom_Expando$initHelp(false),
-						_p19)) : ((_elm_lang$core$Native_Utils.cmp(
-					_elm_lang$core$List$length(_p19),
-					8) < 1) ? A3(_elm_lang$virtual_dom$VirtualDom_Expando$Sequence, _p20, false, _p19) : expando);
-			case 'Dictionary':
-				var _p23 = _p18._1;
-				return isOuter ? A2(
-					_elm_lang$virtual_dom$VirtualDom_Expando$Dictionary,
-					false,
-					A2(
-						_elm_lang$core$List$map,
-						function (_p21) {
-							var _p22 = _p21;
-							return {
-								ctor: '_Tuple2',
-								_0: _p22._0,
-								_1: A2(_elm_lang$virtual_dom$VirtualDom_Expando$initHelp, false, _p22._1)
-							};
-						},
-						_p23)) : ((_elm_lang$core$Native_Utils.cmp(
-					_elm_lang$core$List$length(_p23),
-					8) < 1) ? A2(_elm_lang$virtual_dom$VirtualDom_Expando$Dictionary, false, _p23) : expando);
-			case 'Record':
-				var _p25 = _p18._1;
-				return isOuter ? A2(
-					_elm_lang$virtual_dom$VirtualDom_Expando$Record,
-					false,
-					A2(
-						_elm_lang$core$Dict$map,
-						F2(
-							function (_p24, v) {
-								return A2(_elm_lang$virtual_dom$VirtualDom_Expando$initHelp, false, v);
-							}),
-						_p25)) : ((_elm_lang$core$Native_Utils.cmp(
-					_elm_lang$core$Dict$size(_p25),
-					4) < 1) ? A2(_elm_lang$virtual_dom$VirtualDom_Expando$Record, false, _p25) : expando);
-			default:
-				var _p27 = _p18._0;
-				var _p26 = _p18._2;
-				return isOuter ? A3(
-					_elm_lang$virtual_dom$VirtualDom_Expando$Constructor,
-					_p27,
-					false,
-					A2(
-						_elm_lang$core$List$map,
-						_elm_lang$virtual_dom$VirtualDom_Expando$initHelp(false),
-						_p26)) : ((_elm_lang$core$Native_Utils.cmp(
-					_elm_lang$core$List$length(_p26),
-					4) < 1) ? A3(_elm_lang$virtual_dom$VirtualDom_Expando$Constructor, _p27, false, _p26) : expando);
-		}
-	});
-var _elm_lang$virtual_dom$VirtualDom_Expando$init = function (value) {
-	return A2(
-		_elm_lang$virtual_dom$VirtualDom_Expando$initHelp,
-		true,
-		_elm_lang$virtual_dom$Native_Debug.init(value));
-};
-var _elm_lang$virtual_dom$VirtualDom_Expando$mergeHelp = F2(
-	function (old, $new) {
-		var _p28 = {ctor: '_Tuple2', _0: old, _1: $new};
-		_v12_6:
-		do {
-			if (_p28.ctor === '_Tuple2') {
-				switch (_p28._1.ctor) {
-					case 'S':
-						return $new;
-					case 'Primitive':
-						return $new;
-					case 'Sequence':
-						if (_p28._0.ctor === 'Sequence') {
-							return A3(
-								_elm_lang$virtual_dom$VirtualDom_Expando$Sequence,
-								_p28._1._0,
-								_p28._0._1,
-								A2(_elm_lang$virtual_dom$VirtualDom_Expando$mergeListHelp, _p28._0._2, _p28._1._2));
-						} else {
-							break _v12_6;
-						}
-					case 'Dictionary':
-						if (_p28._0.ctor === 'Dictionary') {
-							return A2(_elm_lang$virtual_dom$VirtualDom_Expando$Dictionary, _p28._0._0, _p28._1._1);
-						} else {
-							break _v12_6;
-						}
-					case 'Record':
-						if (_p28._0.ctor === 'Record') {
-							return A2(
-								_elm_lang$virtual_dom$VirtualDom_Expando$Record,
-								_p28._0._0,
-								A2(
-									_elm_lang$core$Dict$map,
-									_elm_lang$virtual_dom$VirtualDom_Expando$mergeDictHelp(_p28._0._1),
-									_p28._1._1));
-						} else {
-							break _v12_6;
-						}
-					default:
-						if (_p28._0.ctor === 'Constructor') {
-							return A3(
-								_elm_lang$virtual_dom$VirtualDom_Expando$Constructor,
-								_p28._1._0,
-								_p28._0._1,
-								A2(_elm_lang$virtual_dom$VirtualDom_Expando$mergeListHelp, _p28._0._2, _p28._1._2));
-						} else {
-							break _v12_6;
-						}
-				}
-			} else {
-				break _v12_6;
-			}
-		} while(false);
-		return $new;
-	});
-var _elm_lang$virtual_dom$VirtualDom_Expando$mergeDictHelp = F3(
-	function (oldDict, key, value) {
-		var _p29 = A2(_elm_lang$core$Dict$get, key, oldDict);
-		if (_p29.ctor === 'Nothing') {
-			return value;
-		} else {
-			return A2(_elm_lang$virtual_dom$VirtualDom_Expando$mergeHelp, _p29._0, value);
-		}
-	});
-var _elm_lang$virtual_dom$VirtualDom_Expando$mergeListHelp = F2(
-	function (olds, news) {
-		var _p30 = {ctor: '_Tuple2', _0: olds, _1: news};
-		if (_p30._0.ctor === '[]') {
-			return news;
-		} else {
-			if (_p30._1.ctor === '[]') {
-				return news;
-			} else {
-				return {
-					ctor: '::',
-					_0: A2(_elm_lang$virtual_dom$VirtualDom_Expando$mergeHelp, _p30._0._0, _p30._1._0),
-					_1: A2(_elm_lang$virtual_dom$VirtualDom_Expando$mergeListHelp, _p30._0._1, _p30._1._1)
-				};
-			}
-		}
-	});
-var _elm_lang$virtual_dom$VirtualDom_Expando$merge = F2(
-	function (value, expando) {
-		return A2(
-			_elm_lang$virtual_dom$VirtualDom_Expando$mergeHelp,
-			expando,
-			_elm_lang$virtual_dom$Native_Debug.init(value));
-	});
-var _elm_lang$virtual_dom$VirtualDom_Expando$update = F2(
-	function (msg, value) {
-		var _p31 = value;
-		switch (_p31.ctor) {
-			case 'S':
-				return _elm_lang$core$Native_Utils.crashCase(
-					'VirtualDom.Expando',
-					{
-						start: {line: 168, column: 3},
-						end: {line: 235, column: 50}
-					},
-					_p31)('No messages for primitives');
-			case 'Primitive':
-				return _elm_lang$core$Native_Utils.crashCase(
-					'VirtualDom.Expando',
-					{
-						start: {line: 168, column: 3},
-						end: {line: 235, column: 50}
-					},
-					_p31)('No messages for primitives');
-			case 'Sequence':
-				var _p39 = _p31._2;
-				var _p38 = _p31._0;
-				var _p37 = _p31._1;
-				var _p34 = msg;
-				switch (_p34.ctor) {
-					case 'Toggle':
-						return A3(_elm_lang$virtual_dom$VirtualDom_Expando$Sequence, _p38, !_p37, _p39);
-					case 'Index':
-						if (_p34._0.ctor === 'None') {
-							return A3(
-								_elm_lang$virtual_dom$VirtualDom_Expando$Sequence,
-								_p38,
-								_p37,
-								A3(
-									_elm_lang$virtual_dom$VirtualDom_Expando$updateIndex,
-									_p34._1,
-									_elm_lang$virtual_dom$VirtualDom_Expando$update(_p34._2),
-									_p39));
-						} else {
-							return _elm_lang$core$Native_Utils.crashCase(
-								'VirtualDom.Expando',
-								{
-									start: {line: 176, column: 7},
-									end: {line: 188, column: 46}
-								},
-								_p34)('No redirected indexes on sequences');
-						}
-					default:
-						return _elm_lang$core$Native_Utils.crashCase(
-							'VirtualDom.Expando',
-							{
-								start: {line: 176, column: 7},
-								end: {line: 188, column: 46}
-							},
-							_p34)('No field on sequences');
-				}
-			case 'Dictionary':
-				var _p51 = _p31._1;
-				var _p50 = _p31._0;
-				var _p40 = msg;
-				switch (_p40.ctor) {
-					case 'Toggle':
-						return A2(_elm_lang$virtual_dom$VirtualDom_Expando$Dictionary, !_p50, _p51);
-					case 'Index':
-						var _p48 = _p40._2;
-						var _p47 = _p40._1;
-						var _p41 = _p40._0;
-						switch (_p41.ctor) {
-							case 'None':
-								return _elm_lang$core$Native_Utils.crashCase(
-									'VirtualDom.Expando',
-									{
-										start: {line: 196, column: 11},
-										end: {line: 206, column: 81}
-									},
-									_p41)('must have redirect for dictionaries');
-							case 'Key':
-								return A2(
-									_elm_lang$virtual_dom$VirtualDom_Expando$Dictionary,
-									_p50,
-									A3(
-										_elm_lang$virtual_dom$VirtualDom_Expando$updateIndex,
-										_p47,
-										function (_p43) {
-											var _p44 = _p43;
-											return {
-												ctor: '_Tuple2',
-												_0: A2(_elm_lang$virtual_dom$VirtualDom_Expando$update, _p48, _p44._0),
-												_1: _p44._1
-											};
-										},
-										_p51));
-							default:
-								return A2(
-									_elm_lang$virtual_dom$VirtualDom_Expando$Dictionary,
-									_p50,
-									A3(
-										_elm_lang$virtual_dom$VirtualDom_Expando$updateIndex,
-										_p47,
-										function (_p45) {
-											var _p46 = _p45;
-											return {
-												ctor: '_Tuple2',
-												_0: _p46._0,
-												_1: A2(_elm_lang$virtual_dom$VirtualDom_Expando$update, _p48, _p46._1)
-											};
-										},
-										_p51));
-						}
-					default:
-						return _elm_lang$core$Native_Utils.crashCase(
-							'VirtualDom.Expando',
-							{
-								start: {line: 191, column: 7},
-								end: {line: 209, column: 50}
-							},
-							_p40)('no field for dictionaries');
-				}
-			case 'Record':
-				var _p55 = _p31._1;
-				var _p54 = _p31._0;
-				var _p52 = msg;
-				switch (_p52.ctor) {
-					case 'Toggle':
-						return A2(_elm_lang$virtual_dom$VirtualDom_Expando$Record, !_p54, _p55);
-					case 'Index':
-						return _elm_lang$core$Native_Utils.crashCase(
-							'VirtualDom.Expando',
-							{
-								start: {line: 212, column: 7},
-								end: {line: 220, column: 77}
-							},
-							_p52)('No index for records');
-					default:
-						return A2(
-							_elm_lang$virtual_dom$VirtualDom_Expando$Record,
-							_p54,
-							A3(
-								_elm_lang$core$Dict$update,
-								_p52._0,
-								_elm_lang$virtual_dom$VirtualDom_Expando$updateField(_p52._1),
-								_p55));
-				}
-			default:
-				var _p61 = _p31._2;
-				var _p60 = _p31._0;
-				var _p59 = _p31._1;
-				var _p56 = msg;
-				switch (_p56.ctor) {
-					case 'Toggle':
-						return A3(_elm_lang$virtual_dom$VirtualDom_Expando$Constructor, _p60, !_p59, _p61);
-					case 'Index':
-						if (_p56._0.ctor === 'None') {
-							return A3(
-								_elm_lang$virtual_dom$VirtualDom_Expando$Constructor,
-								_p60,
-								_p59,
-								A3(
-									_elm_lang$virtual_dom$VirtualDom_Expando$updateIndex,
-									_p56._1,
-									_elm_lang$virtual_dom$VirtualDom_Expando$update(_p56._2),
-									_p61));
-						} else {
-							return _elm_lang$core$Native_Utils.crashCase(
-								'VirtualDom.Expando',
-								{
-									start: {line: 223, column: 7},
-									end: {line: 235, column: 50}
-								},
-								_p56)('No redirected indexes on sequences');
-						}
-					default:
-						return _elm_lang$core$Native_Utils.crashCase(
-							'VirtualDom.Expando',
-							{
-								start: {line: 223, column: 7},
-								end: {line: 235, column: 50}
-							},
-							_p56)('No field for constructors');
-				}
-		}
-	});
-var _elm_lang$virtual_dom$VirtualDom_Expando$updateField = F2(
-	function (msg, maybeExpando) {
-		var _p62 = maybeExpando;
-		if (_p62.ctor === 'Nothing') {
-			return _elm_lang$core$Native_Utils.crashCase(
-				'VirtualDom.Expando',
-				{
-					start: {line: 253, column: 3},
-					end: {line: 258, column: 32}
-				},
-				_p62)('key does not exist');
-		} else {
-			return _elm_lang$core$Maybe$Just(
-				A2(_elm_lang$virtual_dom$VirtualDom_Expando$update, msg, _p62._0));
-		}
-	});
-var _elm_lang$virtual_dom$VirtualDom_Expando$Primitive = function (a) {
-	return {ctor: 'Primitive', _0: a};
-};
-var _elm_lang$virtual_dom$VirtualDom_Expando$S = function (a) {
-	return {ctor: 'S', _0: a};
-};
-var _elm_lang$virtual_dom$VirtualDom_Expando$ArraySeq = {ctor: 'ArraySeq'};
-var _elm_lang$virtual_dom$VirtualDom_Expando$SetSeq = {ctor: 'SetSeq'};
-var _elm_lang$virtual_dom$VirtualDom_Expando$ListSeq = {ctor: 'ListSeq'};
-var _elm_lang$virtual_dom$VirtualDom_Expando$Field = F2(
-	function (a, b) {
-		return {ctor: 'Field', _0: a, _1: b};
-	});
-var _elm_lang$virtual_dom$VirtualDom_Expando$Index = F3(
-	function (a, b, c) {
-		return {ctor: 'Index', _0: a, _1: b, _2: c};
-	});
-var _elm_lang$virtual_dom$VirtualDom_Expando$Toggle = {ctor: 'Toggle'};
-var _elm_lang$virtual_dom$VirtualDom_Expando$Value = {ctor: 'Value'};
-var _elm_lang$virtual_dom$VirtualDom_Expando$Key = {ctor: 'Key'};
-var _elm_lang$virtual_dom$VirtualDom_Expando$None = {ctor: 'None'};
-var _elm_lang$virtual_dom$VirtualDom_Expando$viewConstructorEntry = F2(
-	function (index, value) {
-		return A2(
-			_elm_lang$virtual_dom$VirtualDom_Helpers$map,
-			A2(_elm_lang$virtual_dom$VirtualDom_Expando$Index, _elm_lang$virtual_dom$VirtualDom_Expando$None, index),
-			A2(
-				_elm_lang$virtual_dom$VirtualDom_Expando$view,
-				_elm_lang$core$Maybe$Just(
-					_elm_lang$core$Basics$toString(index)),
-				value));
-	});
-var _elm_lang$virtual_dom$VirtualDom_Expando$view = F2(
-	function (maybeKey, expando) {
-		var _p64 = expando;
-		switch (_p64.ctor) {
-			case 'S':
-				return A2(
-					_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-					{
-						ctor: '::',
-						_0: _elm_lang$virtual_dom$VirtualDom_Expando$leftPad(maybeKey),
-						_1: {ctor: '[]'}
-					},
-					A3(
-						_elm_lang$virtual_dom$VirtualDom_Expando$lineStarter,
-						maybeKey,
-						_elm_lang$core$Maybe$Nothing,
-						{
-							ctor: '::',
-							_0: A2(
-								_elm_lang$virtual_dom$VirtualDom_Helpers$span,
-								{
-									ctor: '::',
-									_0: _elm_lang$virtual_dom$VirtualDom_Expando$red,
-									_1: {ctor: '[]'}
-								},
-								{
-									ctor: '::',
-									_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(_p64._0),
-									_1: {ctor: '[]'}
-								}),
-							_1: {ctor: '[]'}
-						}));
-			case 'Primitive':
-				return A2(
-					_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-					{
-						ctor: '::',
-						_0: _elm_lang$virtual_dom$VirtualDom_Expando$leftPad(maybeKey),
-						_1: {ctor: '[]'}
-					},
-					A3(
-						_elm_lang$virtual_dom$VirtualDom_Expando$lineStarter,
-						maybeKey,
-						_elm_lang$core$Maybe$Nothing,
-						{
-							ctor: '::',
-							_0: A2(
-								_elm_lang$virtual_dom$VirtualDom_Helpers$span,
-								{
-									ctor: '::',
-									_0: _elm_lang$virtual_dom$VirtualDom_Expando$blue,
-									_1: {ctor: '[]'}
-								},
-								{
-									ctor: '::',
-									_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(_p64._0),
-									_1: {ctor: '[]'}
-								}),
-							_1: {ctor: '[]'}
-						}));
-			case 'Sequence':
-				return A4(_elm_lang$virtual_dom$VirtualDom_Expando$viewSequence, maybeKey, _p64._0, _p64._1, _p64._2);
-			case 'Dictionary':
-				return A3(_elm_lang$virtual_dom$VirtualDom_Expando$viewDictionary, maybeKey, _p64._0, _p64._1);
-			case 'Record':
-				return A3(_elm_lang$virtual_dom$VirtualDom_Expando$viewRecord, maybeKey, _p64._0, _p64._1);
-			default:
-				return A4(_elm_lang$virtual_dom$VirtualDom_Expando$viewConstructor, maybeKey, _p64._0, _p64._1, _p64._2);
-		}
-	});
-var _elm_lang$virtual_dom$VirtualDom_Expando$viewConstructor = F4(
-	function (maybeKey, maybeName, isClosed, valueList) {
-		var _p65 = function () {
-			var _p66 = valueList;
-			if (_p66.ctor === '[]') {
-				return {
-					ctor: '_Tuple2',
-					_0: _elm_lang$core$Maybe$Nothing,
-					_1: A2(
-						_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-						{ctor: '[]'},
-						{ctor: '[]'})
-				};
-			} else {
-				if (_p66._1.ctor === '[]') {
-					var _p67 = _p66._0;
-					switch (_p67.ctor) {
-						case 'S':
-							return {
-								ctor: '_Tuple2',
-								_0: _elm_lang$core$Maybe$Nothing,
-								_1: A2(
-									_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-									{ctor: '[]'},
-									{ctor: '[]'})
-							};
-						case 'Primitive':
-							return {
-								ctor: '_Tuple2',
-								_0: _elm_lang$core$Maybe$Nothing,
-								_1: A2(
-									_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-									{ctor: '[]'},
-									{ctor: '[]'})
-							};
-						case 'Sequence':
-							return {
-								ctor: '_Tuple2',
-								_0: _elm_lang$core$Maybe$Just(isClosed),
-								_1: isClosed ? A2(
-									_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-									{ctor: '[]'},
-									{ctor: '[]'}) : A2(
-									_elm_lang$virtual_dom$VirtualDom_Helpers$map,
-									A2(_elm_lang$virtual_dom$VirtualDom_Expando$Index, _elm_lang$virtual_dom$VirtualDom_Expando$None, 0),
-									_elm_lang$virtual_dom$VirtualDom_Expando$viewSequenceOpen(_p67._2))
-							};
-						case 'Dictionary':
-							return {
-								ctor: '_Tuple2',
-								_0: _elm_lang$core$Maybe$Just(isClosed),
-								_1: isClosed ? A2(
-									_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-									{ctor: '[]'},
-									{ctor: '[]'}) : A2(
-									_elm_lang$virtual_dom$VirtualDom_Helpers$map,
-									A2(_elm_lang$virtual_dom$VirtualDom_Expando$Index, _elm_lang$virtual_dom$VirtualDom_Expando$None, 0),
-									_elm_lang$virtual_dom$VirtualDom_Expando$viewDictionaryOpen(_p67._1))
-							};
-						case 'Record':
-							return {
-								ctor: '_Tuple2',
-								_0: _elm_lang$core$Maybe$Just(isClosed),
-								_1: isClosed ? A2(
-									_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-									{ctor: '[]'},
-									{ctor: '[]'}) : A2(
-									_elm_lang$virtual_dom$VirtualDom_Helpers$map,
-									A2(_elm_lang$virtual_dom$VirtualDom_Expando$Index, _elm_lang$virtual_dom$VirtualDom_Expando$None, 0),
-									_elm_lang$virtual_dom$VirtualDom_Expando$viewRecordOpen(_p67._1))
-							};
-						default:
-							return {
-								ctor: '_Tuple2',
-								_0: _elm_lang$core$Maybe$Just(isClosed),
-								_1: isClosed ? A2(
-									_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-									{ctor: '[]'},
-									{ctor: '[]'}) : A2(
-									_elm_lang$virtual_dom$VirtualDom_Helpers$map,
-									A2(_elm_lang$virtual_dom$VirtualDom_Expando$Index, _elm_lang$virtual_dom$VirtualDom_Expando$None, 0),
-									_elm_lang$virtual_dom$VirtualDom_Expando$viewConstructorOpen(_p67._2))
-							};
-					}
-				} else {
-					return {
-						ctor: '_Tuple2',
-						_0: _elm_lang$core$Maybe$Just(isClosed),
-						_1: isClosed ? A2(
-							_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-							{ctor: '[]'},
-							{ctor: '[]'}) : _elm_lang$virtual_dom$VirtualDom_Expando$viewConstructorOpen(valueList)
-					};
-				}
-			}
-		}();
-		var maybeIsClosed = _p65._0;
-		var openHtml = _p65._1;
-		var tinyArgs = A2(
-			_elm_lang$core$List$map,
-			function (_p68) {
-				return _elm_lang$core$Tuple$second(
-					_elm_lang$virtual_dom$VirtualDom_Expando$viewExtraTiny(_p68));
-			},
-			valueList);
-		var description = function () {
-			var _p69 = {ctor: '_Tuple2', _0: maybeName, _1: tinyArgs};
-			if (_p69._0.ctor === 'Nothing') {
-				if (_p69._1.ctor === '[]') {
-					return {
-						ctor: '::',
-						_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text('()'),
-						_1: {ctor: '[]'}
-					};
-				} else {
-					return {
-						ctor: '::',
-						_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text('( '),
-						_1: {
-							ctor: '::',
-							_0: A2(
-								_elm_lang$virtual_dom$VirtualDom_Helpers$span,
-								{ctor: '[]'},
-								_p69._1._0),
-							_1: A3(
-								_elm_lang$core$List$foldr,
-								F2(
-									function (args, rest) {
-										return {
-											ctor: '::',
-											_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(', '),
-											_1: {
-												ctor: '::',
-												_0: A2(
-													_elm_lang$virtual_dom$VirtualDom_Helpers$span,
-													{ctor: '[]'},
-													args),
-												_1: rest
-											}
-										};
-									}),
-								{
-									ctor: '::',
-									_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(' )'),
-									_1: {ctor: '[]'}
-								},
-								_p69._1._1)
-						}
-					};
-				}
-			} else {
-				if (_p69._1.ctor === '[]') {
-					return {
-						ctor: '::',
-						_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(_p69._0._0),
-						_1: {ctor: '[]'}
-					};
-				} else {
-					return {
-						ctor: '::',
-						_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(
-							A2(_elm_lang$core$Basics_ops['++'], _p69._0._0, ' ')),
-						_1: {
-							ctor: '::',
-							_0: A2(
-								_elm_lang$virtual_dom$VirtualDom_Helpers$span,
-								{ctor: '[]'},
-								_p69._1._0),
-							_1: A3(
-								_elm_lang$core$List$foldr,
-								F2(
-									function (args, rest) {
-										return {
-											ctor: '::',
-											_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(' '),
-											_1: {
-												ctor: '::',
-												_0: A2(
-													_elm_lang$virtual_dom$VirtualDom_Helpers$span,
-													{ctor: '[]'},
-													args),
-												_1: rest
-											}
-										};
-									}),
-								{ctor: '[]'},
-								_p69._1._1)
-						}
-					};
-				}
-			}
-		}();
-		return A2(
-			_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-			{
-				ctor: '::',
-				_0: _elm_lang$virtual_dom$VirtualDom_Expando$leftPad(maybeKey),
-				_1: {ctor: '[]'}
-			},
-			{
-				ctor: '::',
-				_0: A2(
-					_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-					{
-						ctor: '::',
-						_0: _elm_lang$virtual_dom$VirtualDom_Helpers$onClick(_elm_lang$virtual_dom$VirtualDom_Expando$Toggle),
-						_1: {ctor: '[]'}
-					},
-					A3(_elm_lang$virtual_dom$VirtualDom_Expando$lineStarter, maybeKey, maybeIsClosed, description)),
-				_1: {
-					ctor: '::',
-					_0: openHtml,
-					_1: {ctor: '[]'}
-				}
-			});
-	});
-var _elm_lang$virtual_dom$VirtualDom_Expando$viewConstructorOpen = function (valueList) {
-	return A2(
-		_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-		{ctor: '[]'},
-		A2(_elm_lang$core$List$indexedMap, _elm_lang$virtual_dom$VirtualDom_Expando$viewConstructorEntry, valueList));
-};
-var _elm_lang$virtual_dom$VirtualDom_Expando$viewDictionaryOpen = function (keyValuePairs) {
-	return A2(
-		_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-		{ctor: '[]'},
-		A2(_elm_lang$core$List$indexedMap, _elm_lang$virtual_dom$VirtualDom_Expando$viewDictionaryEntry, keyValuePairs));
-};
-var _elm_lang$virtual_dom$VirtualDom_Expando$viewDictionaryEntry = F2(
-	function (index, _p70) {
-		var _p71 = _p70;
-		var _p74 = _p71._1;
-		var _p73 = _p71._0;
-		var _p72 = _p73;
-		switch (_p72.ctor) {
-			case 'S':
-				return A2(
-					_elm_lang$virtual_dom$VirtualDom_Helpers$map,
-					A2(_elm_lang$virtual_dom$VirtualDom_Expando$Index, _elm_lang$virtual_dom$VirtualDom_Expando$Value, index),
-					A2(
-						_elm_lang$virtual_dom$VirtualDom_Expando$view,
-						_elm_lang$core$Maybe$Just(_p72._0),
-						_p74));
-			case 'Primitive':
-				return A2(
-					_elm_lang$virtual_dom$VirtualDom_Helpers$map,
-					A2(_elm_lang$virtual_dom$VirtualDom_Expando$Index, _elm_lang$virtual_dom$VirtualDom_Expando$Value, index),
-					A2(
-						_elm_lang$virtual_dom$VirtualDom_Expando$view,
-						_elm_lang$core$Maybe$Just(_p72._0),
-						_p74));
-			default:
-				return A2(
-					_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-					{ctor: '[]'},
-					{
-						ctor: '::',
-						_0: A2(
-							_elm_lang$virtual_dom$VirtualDom_Helpers$map,
-							A2(_elm_lang$virtual_dom$VirtualDom_Expando$Index, _elm_lang$virtual_dom$VirtualDom_Expando$Key, index),
-							A2(
-								_elm_lang$virtual_dom$VirtualDom_Expando$view,
-								_elm_lang$core$Maybe$Just('key'),
-								_p73)),
-						_1: {
-							ctor: '::',
-							_0: A2(
-								_elm_lang$virtual_dom$VirtualDom_Helpers$map,
-								A2(_elm_lang$virtual_dom$VirtualDom_Expando$Index, _elm_lang$virtual_dom$VirtualDom_Expando$Value, index),
-								A2(
-									_elm_lang$virtual_dom$VirtualDom_Expando$view,
-									_elm_lang$core$Maybe$Just('value'),
-									_p74)),
-							_1: {ctor: '[]'}
-						}
-					});
-		}
-	});
-var _elm_lang$virtual_dom$VirtualDom_Expando$viewRecordOpen = function (record) {
-	return A2(
-		_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-		{ctor: '[]'},
-		A2(
-			_elm_lang$core$List$map,
-			_elm_lang$virtual_dom$VirtualDom_Expando$viewRecordEntry,
-			_elm_lang$core$Dict$toList(record)));
-};
-var _elm_lang$virtual_dom$VirtualDom_Expando$viewRecordEntry = function (_p75) {
-	var _p76 = _p75;
-	var _p77 = _p76._0;
-	return A2(
-		_elm_lang$virtual_dom$VirtualDom_Helpers$map,
-		_elm_lang$virtual_dom$VirtualDom_Expando$Field(_p77),
-		A2(
-			_elm_lang$virtual_dom$VirtualDom_Expando$view,
-			_elm_lang$core$Maybe$Just(_p77),
-			_p76._1));
-};
-var _elm_lang$virtual_dom$VirtualDom_Expando$viewSequenceOpen = function (values) {
-	return A2(
-		_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-		{ctor: '[]'},
-		A2(_elm_lang$core$List$indexedMap, _elm_lang$virtual_dom$VirtualDom_Expando$viewConstructorEntry, values));
-};
-var _elm_lang$virtual_dom$VirtualDom_Expando$viewDictionary = F3(
-	function (maybeKey, isClosed, keyValuePairs) {
-		var starter = A2(
-			_elm_lang$core$Basics_ops['++'],
-			'Dict(',
-			A2(
-				_elm_lang$core$Basics_ops['++'],
-				_elm_lang$core$Basics$toString(
-					_elm_lang$core$List$length(keyValuePairs)),
-				')'));
-		return A2(
-			_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-			{
-				ctor: '::',
-				_0: _elm_lang$virtual_dom$VirtualDom_Expando$leftPad(maybeKey),
-				_1: {ctor: '[]'}
-			},
-			{
-				ctor: '::',
-				_0: A2(
-					_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-					{
-						ctor: '::',
-						_0: _elm_lang$virtual_dom$VirtualDom_Helpers$onClick(_elm_lang$virtual_dom$VirtualDom_Expando$Toggle),
-						_1: {ctor: '[]'}
-					},
-					A3(
-						_elm_lang$virtual_dom$VirtualDom_Expando$lineStarter,
-						maybeKey,
-						_elm_lang$core$Maybe$Just(isClosed),
-						{
-							ctor: '::',
-							_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(starter),
-							_1: {ctor: '[]'}
-						})),
-				_1: {
-					ctor: '::',
-					_0: isClosed ? _elm_lang$virtual_dom$VirtualDom_Helpers$text('') : _elm_lang$virtual_dom$VirtualDom_Expando$viewDictionaryOpen(keyValuePairs),
-					_1: {ctor: '[]'}
-				}
-			});
-	});
-var _elm_lang$virtual_dom$VirtualDom_Expando$viewRecord = F3(
-	function (maybeKey, isClosed, record) {
-		var _p78 = isClosed ? {
-			ctor: '_Tuple3',
-			_0: _elm_lang$core$Tuple$second(
-				_elm_lang$virtual_dom$VirtualDom_Expando$viewTinyRecord(record)),
-			_1: _elm_lang$virtual_dom$VirtualDom_Helpers$text(''),
-			_2: _elm_lang$virtual_dom$VirtualDom_Helpers$text('')
-		} : {
-			ctor: '_Tuple3',
-			_0: {
-				ctor: '::',
-				_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text('{'),
-				_1: {ctor: '[]'}
-			},
-			_1: _elm_lang$virtual_dom$VirtualDom_Expando$viewRecordOpen(record),
-			_2: A2(
-				_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-				{
-					ctor: '::',
-					_0: _elm_lang$virtual_dom$VirtualDom_Expando$leftPad(
-						_elm_lang$core$Maybe$Just(
-							{ctor: '_Tuple0'})),
-					_1: {ctor: '[]'}
-				},
-				{
-					ctor: '::',
-					_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text('}'),
-					_1: {ctor: '[]'}
-				})
-		};
-		var start = _p78._0;
-		var middle = _p78._1;
-		var end = _p78._2;
-		return A2(
-			_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-			{
-				ctor: '::',
-				_0: _elm_lang$virtual_dom$VirtualDom_Expando$leftPad(maybeKey),
-				_1: {ctor: '[]'}
-			},
-			{
-				ctor: '::',
-				_0: A2(
-					_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-					{
-						ctor: '::',
-						_0: _elm_lang$virtual_dom$VirtualDom_Helpers$onClick(_elm_lang$virtual_dom$VirtualDom_Expando$Toggle),
-						_1: {ctor: '[]'}
-					},
-					A3(
-						_elm_lang$virtual_dom$VirtualDom_Expando$lineStarter,
-						maybeKey,
-						_elm_lang$core$Maybe$Just(isClosed),
-						start)),
-				_1: {
-					ctor: '::',
-					_0: middle,
-					_1: {
-						ctor: '::',
-						_0: end,
-						_1: {ctor: '[]'}
-					}
-				}
-			});
-	});
-var _elm_lang$virtual_dom$VirtualDom_Expando$viewSequence = F4(
-	function (maybeKey, seqType, isClosed, valueList) {
-		var starter = A2(
-			_elm_lang$virtual_dom$VirtualDom_Expando$seqTypeToString,
-			_elm_lang$core$List$length(valueList),
-			seqType);
-		return A2(
-			_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-			{
-				ctor: '::',
-				_0: _elm_lang$virtual_dom$VirtualDom_Expando$leftPad(maybeKey),
-				_1: {ctor: '[]'}
-			},
-			{
-				ctor: '::',
-				_0: A2(
-					_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-					{
-						ctor: '::',
-						_0: _elm_lang$virtual_dom$VirtualDom_Helpers$onClick(_elm_lang$virtual_dom$VirtualDom_Expando$Toggle),
-						_1: {ctor: '[]'}
-					},
-					A3(
-						_elm_lang$virtual_dom$VirtualDom_Expando$lineStarter,
-						maybeKey,
-						_elm_lang$core$Maybe$Just(isClosed),
-						{
-							ctor: '::',
-							_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(starter),
-							_1: {ctor: '[]'}
-						})),
-				_1: {
-					ctor: '::',
-					_0: isClosed ? _elm_lang$virtual_dom$VirtualDom_Helpers$text('') : _elm_lang$virtual_dom$VirtualDom_Expando$viewSequenceOpen(valueList),
-					_1: {ctor: '[]'}
-				}
-			});
-	});
-
-var _elm_lang$virtual_dom$VirtualDom_Report$some = function (list) {
-	return !_elm_lang$core$List$isEmpty(list);
-};
-var _elm_lang$virtual_dom$VirtualDom_Report$TagChanges = F4(
-	function (a, b, c, d) {
-		return {removed: a, changed: b, added: c, argsMatch: d};
-	});
-var _elm_lang$virtual_dom$VirtualDom_Report$emptyTagChanges = function (argsMatch) {
-	return A4(
-		_elm_lang$virtual_dom$VirtualDom_Report$TagChanges,
-		{ctor: '[]'},
-		{ctor: '[]'},
-		{ctor: '[]'},
-		argsMatch);
-};
-var _elm_lang$virtual_dom$VirtualDom_Report$hasTagChanges = function (tagChanges) {
-	return _elm_lang$core$Native_Utils.eq(
-		tagChanges,
-		A4(
-			_elm_lang$virtual_dom$VirtualDom_Report$TagChanges,
-			{ctor: '[]'},
-			{ctor: '[]'},
-			{ctor: '[]'},
-			true));
-};
-var _elm_lang$virtual_dom$VirtualDom_Report$SomethingChanged = function (a) {
-	return {ctor: 'SomethingChanged', _0: a};
-};
-var _elm_lang$virtual_dom$VirtualDom_Report$MessageChanged = F2(
-	function (a, b) {
-		return {ctor: 'MessageChanged', _0: a, _1: b};
-	});
-var _elm_lang$virtual_dom$VirtualDom_Report$VersionChanged = F2(
-	function (a, b) {
-		return {ctor: 'VersionChanged', _0: a, _1: b};
-	});
-var _elm_lang$virtual_dom$VirtualDom_Report$CorruptHistory = {ctor: 'CorruptHistory'};
-var _elm_lang$virtual_dom$VirtualDom_Report$UnionChange = F2(
-	function (a, b) {
-		return {ctor: 'UnionChange', _0: a, _1: b};
-	});
-var _elm_lang$virtual_dom$VirtualDom_Report$AliasChange = function (a) {
-	return {ctor: 'AliasChange', _0: a};
-};
-var _elm_lang$virtual_dom$VirtualDom_Report$Fine = {ctor: 'Fine'};
-var _elm_lang$virtual_dom$VirtualDom_Report$Risky = {ctor: 'Risky'};
-var _elm_lang$virtual_dom$VirtualDom_Report$Impossible = {ctor: 'Impossible'};
-var _elm_lang$virtual_dom$VirtualDom_Report$worstCase = F2(
-	function (status, statusList) {
-		worstCase:
-		while (true) {
-			var _p0 = statusList;
-			if (_p0.ctor === '[]') {
-				return status;
-			} else {
-				switch (_p0._0.ctor) {
-					case 'Impossible':
-						return _elm_lang$virtual_dom$VirtualDom_Report$Impossible;
-					case 'Risky':
-						var _v1 = _elm_lang$virtual_dom$VirtualDom_Report$Risky,
-							_v2 = _p0._1;
-						status = _v1;
-						statusList = _v2;
-						continue worstCase;
-					default:
-						var _v3 = status,
-							_v4 = _p0._1;
-						status = _v3;
-						statusList = _v4;
-						continue worstCase;
-				}
-			}
-		}
-	});
-var _elm_lang$virtual_dom$VirtualDom_Report$evaluateChange = function (change) {
-	var _p1 = change;
-	if (_p1.ctor === 'AliasChange') {
-		return _elm_lang$virtual_dom$VirtualDom_Report$Impossible;
-	} else {
-		return ((!_p1._1.argsMatch) || (_elm_lang$virtual_dom$VirtualDom_Report$some(_p1._1.changed) || _elm_lang$virtual_dom$VirtualDom_Report$some(_p1._1.removed))) ? _elm_lang$virtual_dom$VirtualDom_Report$Impossible : (_elm_lang$virtual_dom$VirtualDom_Report$some(_p1._1.added) ? _elm_lang$virtual_dom$VirtualDom_Report$Risky : _elm_lang$virtual_dom$VirtualDom_Report$Fine);
-	}
-};
-var _elm_lang$virtual_dom$VirtualDom_Report$evaluate = function (report) {
-	var _p2 = report;
-	switch (_p2.ctor) {
-		case 'CorruptHistory':
-			return _elm_lang$virtual_dom$VirtualDom_Report$Impossible;
-		case 'VersionChanged':
-			return _elm_lang$virtual_dom$VirtualDom_Report$Impossible;
-		case 'MessageChanged':
-			return _elm_lang$virtual_dom$VirtualDom_Report$Impossible;
-		default:
-			return A2(
-				_elm_lang$virtual_dom$VirtualDom_Report$worstCase,
-				_elm_lang$virtual_dom$VirtualDom_Report$Fine,
-				A2(_elm_lang$core$List$map, _elm_lang$virtual_dom$VirtualDom_Report$evaluateChange, _p2._0));
-	}
-};
-
-var _elm_lang$virtual_dom$VirtualDom_Metadata$encodeDict = F2(
-	function (f, dict) {
-		return _elm_lang$core$Json_Encode$object(
-			_elm_lang$core$Dict$toList(
-				A2(
-					_elm_lang$core$Dict$map,
-					F2(
-						function (key, value) {
-							return f(value);
-						}),
-					dict)));
-	});
-var _elm_lang$virtual_dom$VirtualDom_Metadata$encodeUnion = function (_p0) {
-	var _p1 = _p0;
-	return _elm_lang$core$Json_Encode$object(
-		{
-			ctor: '::',
-			_0: {
-				ctor: '_Tuple2',
-				_0: 'args',
-				_1: _elm_lang$core$Json_Encode$list(
-					A2(_elm_lang$core$List$map, _elm_lang$core$Json_Encode$string, _p1.args))
-			},
-			_1: {
-				ctor: '::',
-				_0: {
-					ctor: '_Tuple2',
-					_0: 'tags',
-					_1: A2(
-						_elm_lang$virtual_dom$VirtualDom_Metadata$encodeDict,
-						function (_p2) {
-							return _elm_lang$core$Json_Encode$list(
-								A2(_elm_lang$core$List$map, _elm_lang$core$Json_Encode$string, _p2));
-						},
-						_p1.tags)
-				},
-				_1: {ctor: '[]'}
-			}
-		});
-};
-var _elm_lang$virtual_dom$VirtualDom_Metadata$encodeAlias = function (_p3) {
-	var _p4 = _p3;
-	return _elm_lang$core$Json_Encode$object(
-		{
-			ctor: '::',
-			_0: {
-				ctor: '_Tuple2',
-				_0: 'args',
-				_1: _elm_lang$core$Json_Encode$list(
-					A2(_elm_lang$core$List$map, _elm_lang$core$Json_Encode$string, _p4.args))
-			},
-			_1: {
-				ctor: '::',
-				_0: {
-					ctor: '_Tuple2',
-					_0: 'type',
-					_1: _elm_lang$core$Json_Encode$string(_p4.tipe)
-				},
-				_1: {ctor: '[]'}
-			}
-		});
-};
-var _elm_lang$virtual_dom$VirtualDom_Metadata$encodeTypes = function (_p5) {
-	var _p6 = _p5;
-	return _elm_lang$core$Json_Encode$object(
-		{
-			ctor: '::',
-			_0: {
-				ctor: '_Tuple2',
-				_0: 'message',
-				_1: _elm_lang$core$Json_Encode$string(_p6.message)
-			},
-			_1: {
-				ctor: '::',
-				_0: {
-					ctor: '_Tuple2',
-					_0: 'aliases',
-					_1: A2(_elm_lang$virtual_dom$VirtualDom_Metadata$encodeDict, _elm_lang$virtual_dom$VirtualDom_Metadata$encodeAlias, _p6.aliases)
-				},
-				_1: {
-					ctor: '::',
-					_0: {
-						ctor: '_Tuple2',
-						_0: 'unions',
-						_1: A2(_elm_lang$virtual_dom$VirtualDom_Metadata$encodeDict, _elm_lang$virtual_dom$VirtualDom_Metadata$encodeUnion, _p6.unions)
-					},
-					_1: {ctor: '[]'}
-				}
-			}
-		});
-};
-var _elm_lang$virtual_dom$VirtualDom_Metadata$encodeVersions = function (_p7) {
-	var _p8 = _p7;
-	return _elm_lang$core$Json_Encode$object(
-		{
-			ctor: '::',
-			_0: {
-				ctor: '_Tuple2',
-				_0: 'elm',
-				_1: _elm_lang$core$Json_Encode$string(_p8.elm)
-			},
-			_1: {ctor: '[]'}
-		});
-};
-var _elm_lang$virtual_dom$VirtualDom_Metadata$encode = function (_p9) {
-	var _p10 = _p9;
-	return _elm_lang$core$Json_Encode$object(
-		{
-			ctor: '::',
-			_0: {
-				ctor: '_Tuple2',
-				_0: 'versions',
-				_1: _elm_lang$virtual_dom$VirtualDom_Metadata$encodeVersions(_p10.versions)
-			},
-			_1: {
-				ctor: '::',
-				_0: {
-					ctor: '_Tuple2',
-					_0: 'types',
-					_1: _elm_lang$virtual_dom$VirtualDom_Metadata$encodeTypes(_p10.types)
-				},
-				_1: {ctor: '[]'}
-			}
-		});
-};
-var _elm_lang$virtual_dom$VirtualDom_Metadata$checkTag = F4(
-	function (tag, old, $new, changes) {
-		return _elm_lang$core$Native_Utils.eq(old, $new) ? changes : _elm_lang$core$Native_Utils.update(
-			changes,
-			{
-				changed: {ctor: '::', _0: tag, _1: changes.changed}
-			});
-	});
-var _elm_lang$virtual_dom$VirtualDom_Metadata$addTag = F3(
-	function (tag, _p11, changes) {
-		return _elm_lang$core$Native_Utils.update(
-			changes,
-			{
-				added: {ctor: '::', _0: tag, _1: changes.added}
-			});
-	});
-var _elm_lang$virtual_dom$VirtualDom_Metadata$removeTag = F3(
-	function (tag, _p12, changes) {
-		return _elm_lang$core$Native_Utils.update(
-			changes,
-			{
-				removed: {ctor: '::', _0: tag, _1: changes.removed}
-			});
-	});
-var _elm_lang$virtual_dom$VirtualDom_Metadata$checkUnion = F4(
-	function (name, old, $new, changes) {
-		var tagChanges = A6(
-			_elm_lang$core$Dict$merge,
-			_elm_lang$virtual_dom$VirtualDom_Metadata$removeTag,
-			_elm_lang$virtual_dom$VirtualDom_Metadata$checkTag,
-			_elm_lang$virtual_dom$VirtualDom_Metadata$addTag,
-			old.tags,
-			$new.tags,
-			_elm_lang$virtual_dom$VirtualDom_Report$emptyTagChanges(
-				_elm_lang$core$Native_Utils.eq(old.args, $new.args)));
-		return _elm_lang$virtual_dom$VirtualDom_Report$hasTagChanges(tagChanges) ? changes : {
-			ctor: '::',
-			_0: A2(_elm_lang$virtual_dom$VirtualDom_Report$UnionChange, name, tagChanges),
-			_1: changes
-		};
-	});
-var _elm_lang$virtual_dom$VirtualDom_Metadata$checkAlias = F4(
-	function (name, old, $new, changes) {
-		return (_elm_lang$core$Native_Utils.eq(old.tipe, $new.tipe) && _elm_lang$core$Native_Utils.eq(old.args, $new.args)) ? changes : {
-			ctor: '::',
-			_0: _elm_lang$virtual_dom$VirtualDom_Report$AliasChange(name),
-			_1: changes
-		};
-	});
-var _elm_lang$virtual_dom$VirtualDom_Metadata$ignore = F3(
-	function (key, value, report) {
-		return report;
-	});
-var _elm_lang$virtual_dom$VirtualDom_Metadata$checkTypes = F2(
-	function (old, $new) {
-		return (!_elm_lang$core$Native_Utils.eq(old.message, $new.message)) ? A2(_elm_lang$virtual_dom$VirtualDom_Report$MessageChanged, old.message, $new.message) : _elm_lang$virtual_dom$VirtualDom_Report$SomethingChanged(
-			A6(
-				_elm_lang$core$Dict$merge,
-				_elm_lang$virtual_dom$VirtualDom_Metadata$ignore,
-				_elm_lang$virtual_dom$VirtualDom_Metadata$checkUnion,
-				_elm_lang$virtual_dom$VirtualDom_Metadata$ignore,
-				old.unions,
-				$new.unions,
-				A6(
-					_elm_lang$core$Dict$merge,
-					_elm_lang$virtual_dom$VirtualDom_Metadata$ignore,
-					_elm_lang$virtual_dom$VirtualDom_Metadata$checkAlias,
-					_elm_lang$virtual_dom$VirtualDom_Metadata$ignore,
-					old.aliases,
-					$new.aliases,
-					{ctor: '[]'})));
-	});
-var _elm_lang$virtual_dom$VirtualDom_Metadata$check = F2(
-	function (old, $new) {
-		return (!_elm_lang$core$Native_Utils.eq(old.versions.elm, $new.versions.elm)) ? A2(_elm_lang$virtual_dom$VirtualDom_Report$VersionChanged, old.versions.elm, $new.versions.elm) : A2(_elm_lang$virtual_dom$VirtualDom_Metadata$checkTypes, old.types, $new.types);
-	});
-var _elm_lang$virtual_dom$VirtualDom_Metadata$hasProblem = F2(
-	function (tipe, _p13) {
-		var _p14 = _p13;
-		return A2(_elm_lang$core$String$contains, _p14._1, tipe) ? _elm_lang$core$Maybe$Just(_p14._0) : _elm_lang$core$Maybe$Nothing;
-	});
-var _elm_lang$virtual_dom$VirtualDom_Metadata$Metadata = F2(
-	function (a, b) {
-		return {versions: a, types: b};
-	});
-var _elm_lang$virtual_dom$VirtualDom_Metadata$Versions = function (a) {
-	return {elm: a};
-};
-var _elm_lang$virtual_dom$VirtualDom_Metadata$decodeVersions = A2(
-	_elm_lang$core$Json_Decode$map,
-	_elm_lang$virtual_dom$VirtualDom_Metadata$Versions,
-	A2(_elm_lang$core$Json_Decode$field, 'elm', _elm_lang$core$Json_Decode$string));
-var _elm_lang$virtual_dom$VirtualDom_Metadata$Types = F3(
-	function (a, b, c) {
-		return {message: a, aliases: b, unions: c};
-	});
-var _elm_lang$virtual_dom$VirtualDom_Metadata$Alias = F2(
-	function (a, b) {
-		return {args: a, tipe: b};
-	});
-var _elm_lang$virtual_dom$VirtualDom_Metadata$decodeAlias = A3(
-	_elm_lang$core$Json_Decode$map2,
-	_elm_lang$virtual_dom$VirtualDom_Metadata$Alias,
-	A2(
-		_elm_lang$core$Json_Decode$field,
-		'args',
-		_elm_lang$core$Json_Decode$list(_elm_lang$core$Json_Decode$string)),
-	A2(_elm_lang$core$Json_Decode$field, 'type', _elm_lang$core$Json_Decode$string));
-var _elm_lang$virtual_dom$VirtualDom_Metadata$Union = F2(
-	function (a, b) {
-		return {args: a, tags: b};
-	});
-var _elm_lang$virtual_dom$VirtualDom_Metadata$decodeUnion = A3(
-	_elm_lang$core$Json_Decode$map2,
-	_elm_lang$virtual_dom$VirtualDom_Metadata$Union,
-	A2(
-		_elm_lang$core$Json_Decode$field,
-		'args',
-		_elm_lang$core$Json_Decode$list(_elm_lang$core$Json_Decode$string)),
-	A2(
-		_elm_lang$core$Json_Decode$field,
-		'tags',
-		_elm_lang$core$Json_Decode$dict(
-			_elm_lang$core$Json_Decode$list(_elm_lang$core$Json_Decode$string))));
-var _elm_lang$virtual_dom$VirtualDom_Metadata$decodeTypes = A4(
-	_elm_lang$core$Json_Decode$map3,
-	_elm_lang$virtual_dom$VirtualDom_Metadata$Types,
-	A2(_elm_lang$core$Json_Decode$field, 'message', _elm_lang$core$Json_Decode$string),
-	A2(
-		_elm_lang$core$Json_Decode$field,
-		'aliases',
-		_elm_lang$core$Json_Decode$dict(_elm_lang$virtual_dom$VirtualDom_Metadata$decodeAlias)),
-	A2(
-		_elm_lang$core$Json_Decode$field,
-		'unions',
-		_elm_lang$core$Json_Decode$dict(_elm_lang$virtual_dom$VirtualDom_Metadata$decodeUnion)));
-var _elm_lang$virtual_dom$VirtualDom_Metadata$decoder = A3(
-	_elm_lang$core$Json_Decode$map2,
-	_elm_lang$virtual_dom$VirtualDom_Metadata$Metadata,
-	A2(_elm_lang$core$Json_Decode$field, 'versions', _elm_lang$virtual_dom$VirtualDom_Metadata$decodeVersions),
-	A2(_elm_lang$core$Json_Decode$field, 'types', _elm_lang$virtual_dom$VirtualDom_Metadata$decodeTypes));
-var _elm_lang$virtual_dom$VirtualDom_Metadata$Error = F2(
-	function (a, b) {
-		return {message: a, problems: b};
-	});
-var _elm_lang$virtual_dom$VirtualDom_Metadata$ProblemType = F2(
-	function (a, b) {
-		return {name: a, problems: b};
-	});
-var _elm_lang$virtual_dom$VirtualDom_Metadata$VirtualDom = {ctor: 'VirtualDom'};
-var _elm_lang$virtual_dom$VirtualDom_Metadata$Program = {ctor: 'Program'};
-var _elm_lang$virtual_dom$VirtualDom_Metadata$Request = {ctor: 'Request'};
-var _elm_lang$virtual_dom$VirtualDom_Metadata$Socket = {ctor: 'Socket'};
-var _elm_lang$virtual_dom$VirtualDom_Metadata$Process = {ctor: 'Process'};
-var _elm_lang$virtual_dom$VirtualDom_Metadata$Task = {ctor: 'Task'};
-var _elm_lang$virtual_dom$VirtualDom_Metadata$Decoder = {ctor: 'Decoder'};
-var _elm_lang$virtual_dom$VirtualDom_Metadata$Function = {ctor: 'Function'};
-var _elm_lang$virtual_dom$VirtualDom_Metadata$problemTable = {
-	ctor: '::',
-	_0: {ctor: '_Tuple2', _0: _elm_lang$virtual_dom$VirtualDom_Metadata$Function, _1: '->'},
-	_1: {
-		ctor: '::',
-		_0: {ctor: '_Tuple2', _0: _elm_lang$virtual_dom$VirtualDom_Metadata$Decoder, _1: 'Json.Decode.Decoder'},
-		_1: {
-			ctor: '::',
-			_0: {ctor: '_Tuple2', _0: _elm_lang$virtual_dom$VirtualDom_Metadata$Task, _1: 'Task.Task'},
-			_1: {
-				ctor: '::',
-				_0: {ctor: '_Tuple2', _0: _elm_lang$virtual_dom$VirtualDom_Metadata$Process, _1: 'Process.Id'},
-				_1: {
-					ctor: '::',
-					_0: {ctor: '_Tuple2', _0: _elm_lang$virtual_dom$VirtualDom_Metadata$Socket, _1: 'WebSocket.LowLevel.WebSocket'},
-					_1: {
-						ctor: '::',
-						_0: {ctor: '_Tuple2', _0: _elm_lang$virtual_dom$VirtualDom_Metadata$Request, _1: 'Http.Request'},
-						_1: {
-							ctor: '::',
-							_0: {ctor: '_Tuple2', _0: _elm_lang$virtual_dom$VirtualDom_Metadata$Program, _1: 'Platform.Program'},
-							_1: {
-								ctor: '::',
-								_0: {ctor: '_Tuple2', _0: _elm_lang$virtual_dom$VirtualDom_Metadata$VirtualDom, _1: 'VirtualDom.Node'},
-								_1: {
-									ctor: '::',
-									_0: {ctor: '_Tuple2', _0: _elm_lang$virtual_dom$VirtualDom_Metadata$VirtualDom, _1: 'VirtualDom.Attribute'},
-									_1: {ctor: '[]'}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-};
-var _elm_lang$virtual_dom$VirtualDom_Metadata$findProblems = function (tipe) {
-	return A2(
-		_elm_lang$core$List$filterMap,
-		_elm_lang$virtual_dom$VirtualDom_Metadata$hasProblem(tipe),
-		_elm_lang$virtual_dom$VirtualDom_Metadata$problemTable);
-};
-var _elm_lang$virtual_dom$VirtualDom_Metadata$collectBadAliases = F3(
-	function (name, _p15, list) {
-		var _p16 = _p15;
-		var _p17 = _elm_lang$virtual_dom$VirtualDom_Metadata$findProblems(_p16.tipe);
-		if (_p17.ctor === '[]') {
-			return list;
-		} else {
-			return {
-				ctor: '::',
-				_0: A2(_elm_lang$virtual_dom$VirtualDom_Metadata$ProblemType, name, _p17),
-				_1: list
-			};
-		}
-	});
-var _elm_lang$virtual_dom$VirtualDom_Metadata$collectBadUnions = F3(
-	function (name, _p18, list) {
-		var _p19 = _p18;
-		var _p20 = A2(
-			_elm_lang$core$List$concatMap,
-			_elm_lang$virtual_dom$VirtualDom_Metadata$findProblems,
-			_elm_lang$core$List$concat(
-				_elm_lang$core$Dict$values(_p19.tags)));
-		if (_p20.ctor === '[]') {
-			return list;
-		} else {
-			return {
-				ctor: '::',
-				_0: A2(_elm_lang$virtual_dom$VirtualDom_Metadata$ProblemType, name, _p20),
-				_1: list
-			};
-		}
-	});
-var _elm_lang$virtual_dom$VirtualDom_Metadata$isPortable = function (_p21) {
-	var _p22 = _p21;
-	var _p24 = _p22.types;
-	var badAliases = A3(
-		_elm_lang$core$Dict$foldl,
-		_elm_lang$virtual_dom$VirtualDom_Metadata$collectBadAliases,
-		{ctor: '[]'},
-		_p24.aliases);
-	var _p23 = A3(_elm_lang$core$Dict$foldl, _elm_lang$virtual_dom$VirtualDom_Metadata$collectBadUnions, badAliases, _p24.unions);
-	if (_p23.ctor === '[]') {
-		return _elm_lang$core$Maybe$Nothing;
-	} else {
-		return _elm_lang$core$Maybe$Just(
-			A2(_elm_lang$virtual_dom$VirtualDom_Metadata$Error, _p24.message, _p23));
-	}
-};
-var _elm_lang$virtual_dom$VirtualDom_Metadata$decode = function (value) {
-	var _p25 = A2(_elm_lang$core$Json_Decode$decodeValue, _elm_lang$virtual_dom$VirtualDom_Metadata$decoder, value);
-	if (_p25.ctor === 'Err') {
-		return _elm_lang$core$Native_Utils.crashCase(
-			'VirtualDom.Metadata',
-			{
-				start: {line: 229, column: 3},
-				end: {line: 239, column: 20}
-			},
-			_p25)('Compiler is generating bad metadata. Report this at <https://github.com/elm-lang/virtual-dom/issues>.');
-	} else {
-		var _p28 = _p25._0;
-		var _p27 = _elm_lang$virtual_dom$VirtualDom_Metadata$isPortable(_p28);
-		if (_p27.ctor === 'Nothing') {
-			return _elm_lang$core$Result$Ok(_p28);
-		} else {
-			return _elm_lang$core$Result$Err(_p27._0);
-		}
-	}
-};
-
-var _elm_lang$virtual_dom$VirtualDom_History$viewMessage = F3(
-	function (currentIndex, index, msg) {
-		var messageName = _elm_lang$virtual_dom$Native_Debug.messageToString(msg);
-		var className = _elm_lang$core$Native_Utils.eq(currentIndex, index) ? 'messages-entry messages-entry-selected' : 'messages-entry';
-		return A2(
-			_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-			{
-				ctor: '::',
-				_0: _elm_lang$virtual_dom$VirtualDom_Helpers$class(className),
-				_1: {
-					ctor: '::',
-					_0: A2(
-						_elm_lang$virtual_dom$VirtualDom_Helpers$on,
-						'click',
-						_elm_lang$core$Json_Decode$succeed(index)),
-					_1: {ctor: '[]'}
-				}
-			},
-			{
-				ctor: '::',
-				_0: A2(
-					_elm_lang$virtual_dom$VirtualDom_Helpers$span,
-					{
-						ctor: '::',
-						_0: _elm_lang$virtual_dom$VirtualDom_Helpers$class('messages-entry-content'),
-						_1: {
-							ctor: '::',
-							_0: A2(_elm_lang$virtual_dom$VirtualDom_Helpers$attribute, 'title', messageName),
-							_1: {ctor: '[]'}
-						}
-					},
-					{
-						ctor: '::',
-						_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(messageName),
-						_1: {ctor: '[]'}
-					}),
-				_1: {
-					ctor: '::',
-					_0: A2(
-						_elm_lang$virtual_dom$VirtualDom_Helpers$span,
-						{
-							ctor: '::',
-							_0: _elm_lang$virtual_dom$VirtualDom_Helpers$class('messages-entry-index'),
-							_1: {ctor: '[]'}
-						},
-						{
-							ctor: '::',
-							_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(
-								_elm_lang$core$Basics$toString(index)),
-							_1: {ctor: '[]'}
-						}),
-					_1: {ctor: '[]'}
-				}
-			});
-	});
-var _elm_lang$virtual_dom$VirtualDom_History$consMsg = F3(
-	function (currentIndex, msg, _p0) {
-		var _p1 = _p0;
-		var _p2 = _p1._0;
-		return {
-			ctor: '_Tuple2',
-			_0: _p2 - 1,
-			_1: {
-				ctor: '::',
-				_0: A4(_elm_lang$virtual_dom$VirtualDom_Helpers$lazy3, _elm_lang$virtual_dom$VirtualDom_History$viewMessage, currentIndex, _p2, msg),
-				_1: _p1._1
-			}
-		};
-	});
-var _elm_lang$virtual_dom$VirtualDom_History$viewSnapshot = F3(
-	function (currentIndex, index, _p3) {
-		var _p4 = _p3;
-		return A2(
-			_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-			{ctor: '[]'},
-			_elm_lang$core$Tuple$second(
-				A3(
-					_elm_lang$core$Array$foldl,
-					_elm_lang$virtual_dom$VirtualDom_History$consMsg(currentIndex),
-					{
-						ctor: '_Tuple2',
-						_0: index - 1,
-						_1: {ctor: '[]'}
-					},
-					_p4.messages)));
-	});
-var _elm_lang$virtual_dom$VirtualDom_History$undone = function (getResult) {
-	var _p5 = getResult;
-	if (_p5.ctor === 'Done') {
-		return {ctor: '_Tuple2', _0: _p5._1, _1: _p5._0};
-	} else {
-		return _elm_lang$core$Native_Utils.crashCase(
-			'VirtualDom.History',
-			{
-				start: {line: 195, column: 3},
-				end: {line: 200, column: 39}
-			},
-			_p5)('Bug in History.get');
-	}
-};
-var _elm_lang$virtual_dom$VirtualDom_History$elmToJs = _elm_lang$virtual_dom$Native_Debug.unsafeCoerce;
-var _elm_lang$virtual_dom$VirtualDom_History$encodeHelp = F2(
-	function (snapshot, allMessages) {
-		return A3(
-			_elm_lang$core$Array$foldl,
-			F2(
-				function (elm, msgs) {
-					return {
-						ctor: '::',
-						_0: _elm_lang$virtual_dom$VirtualDom_History$elmToJs(elm),
-						_1: msgs
-					};
-				}),
-			allMessages,
-			snapshot.messages);
-	});
-var _elm_lang$virtual_dom$VirtualDom_History$encode = function (_p7) {
-	var _p8 = _p7;
-	var recentJson = A2(
-		_elm_lang$core$List$map,
-		_elm_lang$virtual_dom$VirtualDom_History$elmToJs,
-		_elm_lang$core$List$reverse(_p8.recent.messages));
-	return _elm_lang$core$Json_Encode$list(
-		A3(_elm_lang$core$Array$foldr, _elm_lang$virtual_dom$VirtualDom_History$encodeHelp, recentJson, _p8.snapshots));
-};
-var _elm_lang$virtual_dom$VirtualDom_History$jsToElm = _elm_lang$virtual_dom$Native_Debug.unsafeCoerce;
-var _elm_lang$virtual_dom$VirtualDom_History$initialModel = function (_p9) {
-	var _p10 = _p9;
-	var _p11 = A2(_elm_lang$core$Array$get, 0, _p10.snapshots);
-	if (_p11.ctor === 'Just') {
-		return _p11._0.model;
-	} else {
-		return _p10.recent.model;
-	}
-};
-var _elm_lang$virtual_dom$VirtualDom_History$size = function (history) {
-	return history.numMessages;
-};
-var _elm_lang$virtual_dom$VirtualDom_History$maxSnapshotSize = 64;
-var _elm_lang$virtual_dom$VirtualDom_History$consSnapshot = F3(
-	function (currentIndex, snapshot, _p12) {
-		var _p13 = _p12;
-		var _p14 = _p13._0;
-		var nextIndex = _p14 - _elm_lang$virtual_dom$VirtualDom_History$maxSnapshotSize;
-		var currentIndexHelp = ((_elm_lang$core$Native_Utils.cmp(nextIndex, currentIndex) < 1) && (_elm_lang$core$Native_Utils.cmp(currentIndex, _p14) < 0)) ? currentIndex : -1;
-		return {
-			ctor: '_Tuple2',
-			_0: _p14 - _elm_lang$virtual_dom$VirtualDom_History$maxSnapshotSize,
-			_1: {
-				ctor: '::',
-				_0: A4(_elm_lang$virtual_dom$VirtualDom_Helpers$lazy3, _elm_lang$virtual_dom$VirtualDom_History$viewSnapshot, currentIndexHelp, _p14, snapshot),
-				_1: _p13._1
-			}
-		};
-	});
-var _elm_lang$virtual_dom$VirtualDom_History$viewSnapshots = F2(
-	function (currentIndex, snapshots) {
-		var highIndex = _elm_lang$virtual_dom$VirtualDom_History$maxSnapshotSize * _elm_lang$core$Array$length(snapshots);
-		return A2(
-			_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-			{ctor: '[]'},
-			_elm_lang$core$Tuple$second(
-				A3(
-					_elm_lang$core$Array$foldr,
-					_elm_lang$virtual_dom$VirtualDom_History$consSnapshot(currentIndex),
-					{
-						ctor: '_Tuple2',
-						_0: highIndex,
-						_1: {ctor: '[]'}
-					},
-					snapshots)));
-	});
-var _elm_lang$virtual_dom$VirtualDom_History$view = F2(
-	function (maybeIndex, _p15) {
-		var _p16 = _p15;
-		var _p17 = function () {
-			var _p18 = maybeIndex;
-			if (_p18.ctor === 'Nothing') {
-				return {ctor: '_Tuple2', _0: -1, _1: 'debugger-sidebar-messages'};
-			} else {
-				return {ctor: '_Tuple2', _0: _p18._0, _1: 'debugger-sidebar-messages-paused'};
-			}
-		}();
-		var index = _p17._0;
-		var className = _p17._1;
-		var oldStuff = A3(_elm_lang$virtual_dom$VirtualDom_Helpers$lazy2, _elm_lang$virtual_dom$VirtualDom_History$viewSnapshots, index, _p16.snapshots);
-		var newStuff = _elm_lang$core$Tuple$second(
-			A3(
-				_elm_lang$core$List$foldl,
-				_elm_lang$virtual_dom$VirtualDom_History$consMsg(index),
-				{
-					ctor: '_Tuple2',
-					_0: _p16.numMessages - 1,
-					_1: {ctor: '[]'}
-				},
-				_p16.recent.messages));
-		return A2(
-			_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-			{
-				ctor: '::',
-				_0: _elm_lang$virtual_dom$VirtualDom_Helpers$class(className),
-				_1: {ctor: '[]'}
-			},
-			{ctor: '::', _0: oldStuff, _1: newStuff});
-	});
-var _elm_lang$virtual_dom$VirtualDom_History$History = F3(
-	function (a, b, c) {
-		return {snapshots: a, recent: b, numMessages: c};
-	});
-var _elm_lang$virtual_dom$VirtualDom_History$RecentHistory = F3(
-	function (a, b, c) {
-		return {model: a, messages: b, numMessages: c};
-	});
-var _elm_lang$virtual_dom$VirtualDom_History$empty = function (model) {
-	return A3(
-		_elm_lang$virtual_dom$VirtualDom_History$History,
-		_elm_lang$core$Array$empty,
-		A3(
-			_elm_lang$virtual_dom$VirtualDom_History$RecentHistory,
-			model,
-			{ctor: '[]'},
-			0),
-		0);
-};
-var _elm_lang$virtual_dom$VirtualDom_History$Snapshot = F2(
-	function (a, b) {
-		return {model: a, messages: b};
-	});
-var _elm_lang$virtual_dom$VirtualDom_History$addRecent = F3(
-	function (msg, newModel, _p19) {
-		var _p20 = _p19;
-		var _p23 = _p20.numMessages;
-		var _p22 = _p20.model;
-		var _p21 = _p20.messages;
-		return _elm_lang$core$Native_Utils.eq(_p23, _elm_lang$virtual_dom$VirtualDom_History$maxSnapshotSize) ? {
-			ctor: '_Tuple2',
-			_0: _elm_lang$core$Maybe$Just(
-				A2(
-					_elm_lang$virtual_dom$VirtualDom_History$Snapshot,
-					_p22,
-					_elm_lang$core$Array$fromList(_p21))),
-			_1: A3(
-				_elm_lang$virtual_dom$VirtualDom_History$RecentHistory,
-				newModel,
-				{
-					ctor: '::',
-					_0: msg,
-					_1: {ctor: '[]'}
-				},
-				1)
-		} : {
-			ctor: '_Tuple2',
-			_0: _elm_lang$core$Maybe$Nothing,
-			_1: A3(
-				_elm_lang$virtual_dom$VirtualDom_History$RecentHistory,
-				_p22,
-				{ctor: '::', _0: msg, _1: _p21},
-				_p23 + 1)
-		};
-	});
-var _elm_lang$virtual_dom$VirtualDom_History$add = F3(
-	function (msg, model, _p24) {
-		var _p25 = _p24;
-		var _p28 = _p25.snapshots;
-		var _p27 = _p25.numMessages;
-		var _p26 = A3(_elm_lang$virtual_dom$VirtualDom_History$addRecent, msg, model, _p25.recent);
-		if (_p26._0.ctor === 'Just') {
-			return A3(
-				_elm_lang$virtual_dom$VirtualDom_History$History,
-				A2(_elm_lang$core$Array$push, _p26._0._0, _p28),
-				_p26._1,
-				_p27 + 1);
-		} else {
-			return A3(_elm_lang$virtual_dom$VirtualDom_History$History, _p28, _p26._1, _p27 + 1);
-		}
-	});
-var _elm_lang$virtual_dom$VirtualDom_History$decoder = F2(
-	function (initialModel, update) {
-		var addMessage = F2(
-			function (rawMsg, _p29) {
-				var _p30 = _p29;
-				var _p31 = _p30._0;
-				var msg = _elm_lang$virtual_dom$VirtualDom_History$jsToElm(rawMsg);
-				return {
-					ctor: '_Tuple2',
-					_0: A2(update, msg, _p31),
-					_1: A3(_elm_lang$virtual_dom$VirtualDom_History$add, msg, _p31, _p30._1)
-				};
-			});
-		var updateModel = function (rawMsgs) {
-			return A3(
-				_elm_lang$core$List$foldl,
-				addMessage,
-				{
-					ctor: '_Tuple2',
-					_0: initialModel,
-					_1: _elm_lang$virtual_dom$VirtualDom_History$empty(initialModel)
-				},
-				rawMsgs);
-		};
-		return A2(
-			_elm_lang$core$Json_Decode$map,
-			updateModel,
-			_elm_lang$core$Json_Decode$list(_elm_lang$core$Json_Decode$value));
-	});
-var _elm_lang$virtual_dom$VirtualDom_History$Done = F2(
-	function (a, b) {
-		return {ctor: 'Done', _0: a, _1: b};
-	});
-var _elm_lang$virtual_dom$VirtualDom_History$Stepping = F2(
-	function (a, b) {
-		return {ctor: 'Stepping', _0: a, _1: b};
-	});
-var _elm_lang$virtual_dom$VirtualDom_History$getHelp = F3(
-	function (update, msg, getResult) {
-		var _p32 = getResult;
-		if (_p32.ctor === 'Done') {
-			return getResult;
-		} else {
-			var _p34 = _p32._0;
-			var _p33 = _p32._1;
-			return _elm_lang$core$Native_Utils.eq(_p34, 0) ? A2(
-				_elm_lang$virtual_dom$VirtualDom_History$Done,
-				msg,
-				_elm_lang$core$Tuple$first(
-					A2(update, msg, _p33))) : A2(
-				_elm_lang$virtual_dom$VirtualDom_History$Stepping,
-				_p34 - 1,
-				_elm_lang$core$Tuple$first(
-					A2(update, msg, _p33)));
-		}
-	});
-var _elm_lang$virtual_dom$VirtualDom_History$get = F3(
-	function (update, index, _p35) {
-		var _p36 = _p35;
-		var _p39 = _p36.recent;
-		var snapshotMax = _p36.numMessages - _p39.numMessages;
-		if (_elm_lang$core$Native_Utils.cmp(index, snapshotMax) > -1) {
-			return _elm_lang$virtual_dom$VirtualDom_History$undone(
-				A3(
-					_elm_lang$core$List$foldr,
-					_elm_lang$virtual_dom$VirtualDom_History$getHelp(update),
-					A2(_elm_lang$virtual_dom$VirtualDom_History$Stepping, index - snapshotMax, _p39.model),
-					_p39.messages));
-		} else {
-			var _p37 = A2(_elm_lang$core$Array$get, (index / _elm_lang$virtual_dom$VirtualDom_History$maxSnapshotSize) | 0, _p36.snapshots);
-			if (_p37.ctor === 'Nothing') {
-				return _elm_lang$core$Native_Utils.crashCase(
-					'VirtualDom.History',
-					{
-						start: {line: 165, column: 7},
-						end: {line: 171, column: 95}
-					},
-					_p37)('UI should only let you ask for real indexes!');
-			} else {
-				return _elm_lang$virtual_dom$VirtualDom_History$undone(
-					A3(
-						_elm_lang$core$Array$foldr,
-						_elm_lang$virtual_dom$VirtualDom_History$getHelp(update),
-						A2(
-							_elm_lang$virtual_dom$VirtualDom_History$Stepping,
-							A2(_elm_lang$core$Basics$rem, index, _elm_lang$virtual_dom$VirtualDom_History$maxSnapshotSize),
-							_p37._0.model),
-						_p37._0.messages));
-			}
-		}
-	});
-
-var _elm_lang$virtual_dom$VirtualDom_Overlay$styles = A3(
-	_elm_lang$virtual_dom$VirtualDom_Helpers$node,
-	'style',
-	{ctor: '[]'},
-	{
-		ctor: '::',
-		_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text('\n\n.elm-overlay {\n  position: fixed;\n  top: 0;\n  left: 0;\n  width: 100%;\n  height: 100%;\n  color: white;\n  pointer-events: none;\n  font-family: \'Trebuchet MS\', \'Lucida Grande\', \'Bitstream Vera Sans\', \'Helvetica Neue\', sans-serif;\n}\n\n.elm-overlay-resume {\n  width: 100%;\n  height: 100%;\n  cursor: pointer;\n  text-align: center;\n  pointer-events: auto;\n  background-color: rgba(200, 200, 200, 0.7);\n}\n\n.elm-overlay-resume-words {\n  position: absolute;\n  top: calc(50% - 40px);\n  font-size: 80px;\n  line-height: 80px;\n  height: 80px;\n  width: 100%;\n}\n\n.elm-mini-controls {\n  position: fixed;\n  bottom: 0;\n  right: 6px;\n  border-radius: 4px;\n  background-color: rgb(61, 61, 61);\n  font-family: monospace;\n  pointer-events: auto;\n}\n\n.elm-mini-controls-button {\n  padding: 6px;\n  cursor: pointer;\n  text-align: center;\n  min-width: 24ch;\n}\n\n.elm-mini-controls-import-export {\n  padding: 4px 0;\n  font-size: 0.8em;\n  text-align: center;\n  background-color: rgb(50, 50, 50);\n}\n\n.elm-overlay-message {\n  position: absolute;\n  width: 600px;\n  height: 100%;\n  padding-left: calc(50% - 300px);\n  padding-right: calc(50% - 300px);\n  background-color: rgba(200, 200, 200, 0.7);\n  pointer-events: auto;\n}\n\n.elm-overlay-message-title {\n  font-size: 36px;\n  height: 80px;\n  background-color: rgb(50, 50, 50);\n  padding-left: 22px;\n  vertical-align: middle;\n  line-height: 80px;\n}\n\n.elm-overlay-message-details {\n  padding: 8px 20px;\n  overflow-y: auto;\n  max-height: calc(100% - 156px);\n  background-color: rgb(61, 61, 61);\n}\n\n.elm-overlay-message-details-type {\n  font-size: 1.5em;\n}\n\n.elm-overlay-message-details ul {\n  list-style-type: none;\n  padding-left: 20px;\n}\n\n.elm-overlay-message-details ul ul {\n  list-style-type: disc;\n  padding-left: 2em;\n}\n\n.elm-overlay-message-details li {\n  margin: 8px 0;\n}\n\n.elm-overlay-message-buttons {\n  height: 60px;\n  line-height: 60px;\n  text-align: right;\n  background-color: rgb(50, 50, 50);\n}\n\n.elm-overlay-message-buttons button {\n  margin-right: 20px;\n}\n\n'),
-		_1: {ctor: '[]'}
-	});
-var _elm_lang$virtual_dom$VirtualDom_Overlay$button = F2(
-	function (msg, label) {
-		return A2(
-			_elm_lang$virtual_dom$VirtualDom_Helpers$span,
-			{
-				ctor: '::',
-				_0: _elm_lang$virtual_dom$VirtualDom_Helpers$onClick(msg),
-				_1: {
-					ctor: '::',
-					_0: _elm_lang$virtual_dom$VirtualDom_Helpers$style(
-						{
-							ctor: '::',
-							_0: {ctor: '_Tuple2', _0: 'cursor', _1: 'pointer'},
-							_1: {ctor: '[]'}
-						}),
-					_1: {ctor: '[]'}
-				}
-			},
-			{
-				ctor: '::',
-				_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(label),
-				_1: {ctor: '[]'}
-			});
-	});
-var _elm_lang$virtual_dom$VirtualDom_Overlay$viewImportExport = F3(
-	function (props, importMsg, exportMsg) {
-		return A2(
-			_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-			props,
-			{
-				ctor: '::',
-				_0: A2(_elm_lang$virtual_dom$VirtualDom_Overlay$button, importMsg, 'Import'),
-				_1: {
-					ctor: '::',
-					_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(' / '),
-					_1: {
-						ctor: '::',
-						_0: A2(_elm_lang$virtual_dom$VirtualDom_Overlay$button, exportMsg, 'Export'),
-						_1: {ctor: '[]'}
-					}
-				}
-			});
-	});
-var _elm_lang$virtual_dom$VirtualDom_Overlay$viewMiniControls = F2(
-	function (config, numMsgs) {
-		return A2(
-			_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-			{
-				ctor: '::',
-				_0: _elm_lang$virtual_dom$VirtualDom_Helpers$class('elm-mini-controls'),
-				_1: {ctor: '[]'}
-			},
-			{
-				ctor: '::',
-				_0: A2(
-					_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-					{
-						ctor: '::',
-						_0: _elm_lang$virtual_dom$VirtualDom_Helpers$onClick(config.open),
-						_1: {
-							ctor: '::',
-							_0: _elm_lang$virtual_dom$VirtualDom_Helpers$class('elm-mini-controls-button'),
-							_1: {ctor: '[]'}
-						}
-					},
-					{
-						ctor: '::',
-						_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(
-							A2(
-								_elm_lang$core$Basics_ops['++'],
-								'Explore History (',
-								A2(
-									_elm_lang$core$Basics_ops['++'],
-									_elm_lang$core$Basics$toString(numMsgs),
-									')'))),
-						_1: {ctor: '[]'}
-					}),
-				_1: {
-					ctor: '::',
-					_0: A3(
-						_elm_lang$virtual_dom$VirtualDom_Overlay$viewImportExport,
-						{
-							ctor: '::',
-							_0: _elm_lang$virtual_dom$VirtualDom_Helpers$class('elm-mini-controls-import-export'),
-							_1: {ctor: '[]'}
-						},
-						config.importHistory,
-						config.exportHistory),
-					_1: {ctor: '[]'}
-				}
-			});
-	});
-var _elm_lang$virtual_dom$VirtualDom_Overlay$addCommas = function (items) {
-	var _p0 = items;
-	if (_p0.ctor === '[]') {
-		return '';
-	} else {
-		if (_p0._1.ctor === '[]') {
-			return _p0._0;
-		} else {
-			if (_p0._1._1.ctor === '[]') {
-				return A2(
-					_elm_lang$core$Basics_ops['++'],
-					_p0._0,
-					A2(_elm_lang$core$Basics_ops['++'], ' and ', _p0._1._0));
-			} else {
-				return A2(
-					_elm_lang$core$String$join,
-					', ',
-					A2(
-						_elm_lang$core$Basics_ops['++'],
-						_p0._1,
-						{
-							ctor: '::',
-							_0: A2(_elm_lang$core$Basics_ops['++'], ' and ', _p0._0),
-							_1: {ctor: '[]'}
-						}));
-			}
-		}
-	}
-};
-var _elm_lang$virtual_dom$VirtualDom_Overlay$problemToString = function (problem) {
-	var _p1 = problem;
-	switch (_p1.ctor) {
-		case 'Function':
-			return 'functions';
-		case 'Decoder':
-			return 'JSON decoders';
-		case 'Task':
-			return 'tasks';
-		case 'Process':
-			return 'processes';
-		case 'Socket':
-			return 'web sockets';
-		case 'Request':
-			return 'HTTP requests';
-		case 'Program':
-			return 'programs';
-		default:
-			return 'virtual DOM values';
-	}
-};
-var _elm_lang$virtual_dom$VirtualDom_Overlay$goodNews2 = '\nfunction can pattern match on that data and call whatever functions, JSON\ndecoders, etc. you need. This makes the code much more explicit and easy to\nfollow for other readers (or you in a few months!)\n';
-var _elm_lang$virtual_dom$VirtualDom_Overlay$goodNews1 = '\nThe good news is that having values like this in your message type is not\nso great in the long run. You are better off using simpler data, like\n';
-var _elm_lang$virtual_dom$VirtualDom_Overlay$viewCode = function (name) {
-	return A3(
-		_elm_lang$virtual_dom$VirtualDom_Helpers$node,
-		'code',
-		{ctor: '[]'},
-		{
-			ctor: '::',
-			_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(name),
-			_1: {ctor: '[]'}
-		});
-};
-var _elm_lang$virtual_dom$VirtualDom_Overlay$viewMention = F2(
-	function (tags, verbed) {
-		var _p2 = A2(
-			_elm_lang$core$List$map,
-			_elm_lang$virtual_dom$VirtualDom_Overlay$viewCode,
-			_elm_lang$core$List$reverse(tags));
-		if (_p2.ctor === '[]') {
-			return _elm_lang$virtual_dom$VirtualDom_Helpers$text('');
-		} else {
-			if (_p2._1.ctor === '[]') {
-				return A3(
-					_elm_lang$virtual_dom$VirtualDom_Helpers$node,
-					'li',
-					{ctor: '[]'},
-					{
-						ctor: '::',
-						_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(verbed),
-						_1: {
-							ctor: '::',
-							_0: _p2._0,
-							_1: {
-								ctor: '::',
-								_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text('.'),
-								_1: {ctor: '[]'}
-							}
-						}
-					});
-			} else {
-				if (_p2._1._1.ctor === '[]') {
-					return A3(
-						_elm_lang$virtual_dom$VirtualDom_Helpers$node,
-						'li',
-						{ctor: '[]'},
-						{
-							ctor: '::',
-							_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(verbed),
-							_1: {
-								ctor: '::',
-								_0: _p2._1._0,
-								_1: {
-									ctor: '::',
-									_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(' and '),
-									_1: {
-										ctor: '::',
-										_0: _p2._0,
-										_1: {
-											ctor: '::',
-											_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text('.'),
-											_1: {ctor: '[]'}
-										}
-									}
-								}
-							}
-						});
-				} else {
-					return A3(
-						_elm_lang$virtual_dom$VirtualDom_Helpers$node,
-						'li',
-						{ctor: '[]'},
-						{
-							ctor: '::',
-							_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(verbed),
-							_1: A2(
-								_elm_lang$core$Basics_ops['++'],
-								A2(
-									_elm_lang$core$List$intersperse,
-									_elm_lang$virtual_dom$VirtualDom_Helpers$text(', '),
-									_elm_lang$core$List$reverse(_p2._1)),
-								{
-									ctor: '::',
-									_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(', and '),
-									_1: {
-										ctor: '::',
-										_0: _p2._0,
-										_1: {
-											ctor: '::',
-											_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text('.'),
-											_1: {ctor: '[]'}
-										}
-									}
-								})
-						});
-				}
-			}
-		}
-	});
-var _elm_lang$virtual_dom$VirtualDom_Overlay$viewChange = function (change) {
-	return A3(
-		_elm_lang$virtual_dom$VirtualDom_Helpers$node,
-		'li',
-		{ctor: '[]'},
-		function () {
-			var _p3 = change;
-			if (_p3.ctor === 'AliasChange') {
-				return {
-					ctor: '::',
-					_0: A2(
-						_elm_lang$virtual_dom$VirtualDom_Helpers$span,
-						{
-							ctor: '::',
-							_0: _elm_lang$virtual_dom$VirtualDom_Helpers$class('elm-overlay-message-details-type'),
-							_1: {ctor: '[]'}
-						},
-						{
-							ctor: '::',
-							_0: _elm_lang$virtual_dom$VirtualDom_Overlay$viewCode(_p3._0),
-							_1: {ctor: '[]'}
-						}),
-					_1: {ctor: '[]'}
-				};
-			} else {
-				return {
-					ctor: '::',
-					_0: A2(
-						_elm_lang$virtual_dom$VirtualDom_Helpers$span,
-						{
-							ctor: '::',
-							_0: _elm_lang$virtual_dom$VirtualDom_Helpers$class('elm-overlay-message-details-type'),
-							_1: {ctor: '[]'}
-						},
-						{
-							ctor: '::',
-							_0: _elm_lang$virtual_dom$VirtualDom_Overlay$viewCode(_p3._0),
-							_1: {ctor: '[]'}
-						}),
-					_1: {
-						ctor: '::',
-						_0: A3(
-							_elm_lang$virtual_dom$VirtualDom_Helpers$node,
-							'ul',
-							{ctor: '[]'},
-							{
-								ctor: '::',
-								_0: A2(_elm_lang$virtual_dom$VirtualDom_Overlay$viewMention, _p3._1.removed, 'Removed '),
-								_1: {
-									ctor: '::',
-									_0: A2(_elm_lang$virtual_dom$VirtualDom_Overlay$viewMention, _p3._1.changed, 'Changed '),
-									_1: {
-										ctor: '::',
-										_0: A2(_elm_lang$virtual_dom$VirtualDom_Overlay$viewMention, _p3._1.added, 'Added '),
-										_1: {ctor: '[]'}
-									}
-								}
-							}),
-						_1: {
-							ctor: '::',
-							_0: _p3._1.argsMatch ? _elm_lang$virtual_dom$VirtualDom_Helpers$text('') : _elm_lang$virtual_dom$VirtualDom_Helpers$text('This may be due to the fact that the type variable names changed.'),
-							_1: {ctor: '[]'}
-						}
-					}
-				};
-			}
-		}());
-};
-var _elm_lang$virtual_dom$VirtualDom_Overlay$viewProblemType = function (_p4) {
-	var _p5 = _p4;
-	return A3(
-		_elm_lang$virtual_dom$VirtualDom_Helpers$node,
-		'li',
-		{ctor: '[]'},
-		{
-			ctor: '::',
-			_0: _elm_lang$virtual_dom$VirtualDom_Overlay$viewCode(_p5.name),
-			_1: {
-				ctor: '::',
-				_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(
-					A2(
-						_elm_lang$core$Basics_ops['++'],
-						' can contain ',
-						A2(
-							_elm_lang$core$Basics_ops['++'],
-							_elm_lang$virtual_dom$VirtualDom_Overlay$addCommas(
-								A2(_elm_lang$core$List$map, _elm_lang$virtual_dom$VirtualDom_Overlay$problemToString, _p5.problems)),
-							'.'))),
-				_1: {ctor: '[]'}
-			}
-		});
-};
-var _elm_lang$virtual_dom$VirtualDom_Overlay$viewBadMetadata = function (_p6) {
-	var _p7 = _p6;
-	return {
-		ctor: '::',
-		_0: A3(
-			_elm_lang$virtual_dom$VirtualDom_Helpers$node,
-			'p',
-			{ctor: '[]'},
-			{
-				ctor: '::',
-				_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text('The '),
-				_1: {
-					ctor: '::',
-					_0: _elm_lang$virtual_dom$VirtualDom_Overlay$viewCode(_p7.message),
-					_1: {
-						ctor: '::',
-						_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(' type of your program cannot be reliably serialized for history files.'),
-						_1: {ctor: '[]'}
-					}
-				}
-			}),
-		_1: {
-			ctor: '::',
-			_0: A3(
-				_elm_lang$virtual_dom$VirtualDom_Helpers$node,
-				'p',
-				{ctor: '[]'},
-				{
-					ctor: '::',
-					_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text('Functions cannot be serialized, nor can values that contain functions. This is a problem in these places:'),
-					_1: {ctor: '[]'}
-				}),
-			_1: {
-				ctor: '::',
-				_0: A3(
-					_elm_lang$virtual_dom$VirtualDom_Helpers$node,
-					'ul',
-					{ctor: '[]'},
-					A2(_elm_lang$core$List$map, _elm_lang$virtual_dom$VirtualDom_Overlay$viewProblemType, _p7.problems)),
-				_1: {
-					ctor: '::',
-					_0: A3(
-						_elm_lang$virtual_dom$VirtualDom_Helpers$node,
-						'p',
-						{ctor: '[]'},
-						{
-							ctor: '::',
-							_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(_elm_lang$virtual_dom$VirtualDom_Overlay$goodNews1),
-							_1: {
-								ctor: '::',
-								_0: A2(
-									_elm_lang$virtual_dom$VirtualDom_Helpers$a,
-									{
-										ctor: '::',
-										_0: _elm_lang$virtual_dom$VirtualDom_Helpers$href('https://guide.elm-lang.org/types/union_types.html'),
-										_1: {ctor: '[]'}
-									},
-									{
-										ctor: '::',
-										_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text('union types'),
-										_1: {ctor: '[]'}
-									}),
-								_1: {
-									ctor: '::',
-									_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(', in your messages. From there, your '),
-									_1: {
-										ctor: '::',
-										_0: _elm_lang$virtual_dom$VirtualDom_Overlay$viewCode('update'),
-										_1: {
-											ctor: '::',
-											_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(_elm_lang$virtual_dom$VirtualDom_Overlay$goodNews2),
-											_1: {ctor: '[]'}
-										}
-									}
-								}
-							}
-						}),
-					_1: {ctor: '[]'}
-				}
-			}
-		}
-	};
-};
-var _elm_lang$virtual_dom$VirtualDom_Overlay$explanationRisky = '\nThis history seems old. It will work with this program, but some\nmessages have been added since the history was created:\n';
-var _elm_lang$virtual_dom$VirtualDom_Overlay$explanationBad = '\nThe messages in this history do not match the messages handled by your\nprogram. I noticed changes in the following types:\n';
-var _elm_lang$virtual_dom$VirtualDom_Overlay$viewReport = F2(
-	function (isBad, report) {
-		var _p8 = report;
-		switch (_p8.ctor) {
-			case 'CorruptHistory':
-				return {
-					ctor: '::',
-					_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text('Looks like this history file is corrupt. I cannot understand it.'),
-					_1: {ctor: '[]'}
-				};
-			case 'VersionChanged':
-				return {
-					ctor: '::',
-					_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(
-						A2(
-							_elm_lang$core$Basics_ops['++'],
-							'This history was created with Elm ',
-							A2(
-								_elm_lang$core$Basics_ops['++'],
-								_p8._0,
-								A2(
-									_elm_lang$core$Basics_ops['++'],
-									', but you are using Elm ',
-									A2(_elm_lang$core$Basics_ops['++'], _p8._1, ' right now.'))))),
-					_1: {ctor: '[]'}
-				};
-			case 'MessageChanged':
-				return {
-					ctor: '::',
-					_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(
-						A2(_elm_lang$core$Basics_ops['++'], 'To import some other history, the overall message type must', ' be the same. The old history has ')),
-					_1: {
-						ctor: '::',
-						_0: _elm_lang$virtual_dom$VirtualDom_Overlay$viewCode(_p8._0),
-						_1: {
-							ctor: '::',
-							_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(' messages, but the new program works with '),
-							_1: {
-								ctor: '::',
-								_0: _elm_lang$virtual_dom$VirtualDom_Overlay$viewCode(_p8._1),
-								_1: {
-									ctor: '::',
-									_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(' messages.'),
-									_1: {ctor: '[]'}
-								}
-							}
-						}
-					}
-				};
-			default:
-				return {
-					ctor: '::',
-					_0: A3(
-						_elm_lang$virtual_dom$VirtualDom_Helpers$node,
-						'p',
-						{ctor: '[]'},
-						{
-							ctor: '::',
-							_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(
-								isBad ? _elm_lang$virtual_dom$VirtualDom_Overlay$explanationBad : _elm_lang$virtual_dom$VirtualDom_Overlay$explanationRisky),
-							_1: {ctor: '[]'}
-						}),
-					_1: {
-						ctor: '::',
-						_0: A3(
-							_elm_lang$virtual_dom$VirtualDom_Helpers$node,
-							'ul',
-							{ctor: '[]'},
-							A2(_elm_lang$core$List$map, _elm_lang$virtual_dom$VirtualDom_Overlay$viewChange, _p8._0)),
-						_1: {ctor: '[]'}
-					}
-				};
-		}
-	});
-var _elm_lang$virtual_dom$VirtualDom_Overlay$viewResume = function (config) {
-	return A2(
-		_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-		{
-			ctor: '::',
-			_0: _elm_lang$virtual_dom$VirtualDom_Helpers$class('elm-overlay-resume'),
-			_1: {
-				ctor: '::',
-				_0: _elm_lang$virtual_dom$VirtualDom_Helpers$onClick(config.resume),
-				_1: {ctor: '[]'}
-			}
-		},
-		{
-			ctor: '::',
-			_0: A2(
-				_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-				{
-					ctor: '::',
-					_0: _elm_lang$virtual_dom$VirtualDom_Helpers$class('elm-overlay-resume-words'),
-					_1: {ctor: '[]'}
-				},
-				{
-					ctor: '::',
-					_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text('Click to Resume'),
-					_1: {ctor: '[]'}
-				}),
-			_1: {ctor: '[]'}
-		});
-};
-var _elm_lang$virtual_dom$VirtualDom_Overlay$uploadDecoder = A3(
-	_elm_lang$core$Json_Decode$map2,
-	F2(
-		function (v0, v1) {
-			return {ctor: '_Tuple2', _0: v0, _1: v1};
-		}),
-	A2(_elm_lang$core$Json_Decode$field, 'metadata', _elm_lang$virtual_dom$VirtualDom_Metadata$decoder),
-	A2(_elm_lang$core$Json_Decode$field, 'history', _elm_lang$core$Json_Decode$value));
-var _elm_lang$virtual_dom$VirtualDom_Overlay$close = F2(
-	function (msg, state) {
-		var _p9 = state;
-		switch (_p9.ctor) {
-			case 'None':
-				return _elm_lang$core$Maybe$Nothing;
-			case 'BadMetadata':
-				return _elm_lang$core$Maybe$Nothing;
-			case 'BadImport':
-				return _elm_lang$core$Maybe$Nothing;
-			default:
-				var _p10 = msg;
-				if (_p10.ctor === 'Cancel') {
-					return _elm_lang$core$Maybe$Nothing;
-				} else {
-					return _elm_lang$core$Maybe$Just(_p9._1);
-				}
-		}
-	});
-var _elm_lang$virtual_dom$VirtualDom_Overlay$isBlocking = function (state) {
-	var _p11 = state;
-	if (_p11.ctor === 'None') {
-		return false;
-	} else {
-		return true;
-	}
-};
-var _elm_lang$virtual_dom$VirtualDom_Overlay$Config = F5(
-	function (a, b, c, d, e) {
-		return {resume: a, open: b, importHistory: c, exportHistory: d, wrap: e};
-	});
-var _elm_lang$virtual_dom$VirtualDom_Overlay$RiskyImport = F2(
-	function (a, b) {
-		return {ctor: 'RiskyImport', _0: a, _1: b};
-	});
-var _elm_lang$virtual_dom$VirtualDom_Overlay$BadImport = function (a) {
-	return {ctor: 'BadImport', _0: a};
-};
-var _elm_lang$virtual_dom$VirtualDom_Overlay$corruptImport = _elm_lang$virtual_dom$VirtualDom_Overlay$BadImport(_elm_lang$virtual_dom$VirtualDom_Report$CorruptHistory);
-var _elm_lang$virtual_dom$VirtualDom_Overlay$assessImport = F2(
-	function (metadata, jsonString) {
-		var _p12 = A2(_elm_lang$core$Json_Decode$decodeString, _elm_lang$virtual_dom$VirtualDom_Overlay$uploadDecoder, jsonString);
-		if (_p12.ctor === 'Err') {
-			return _elm_lang$core$Result$Err(_elm_lang$virtual_dom$VirtualDom_Overlay$corruptImport);
-		} else {
-			var _p14 = _p12._0._1;
-			var report = A2(_elm_lang$virtual_dom$VirtualDom_Metadata$check, _p12._0._0, metadata);
-			var _p13 = _elm_lang$virtual_dom$VirtualDom_Report$evaluate(report);
-			switch (_p13.ctor) {
-				case 'Impossible':
-					return _elm_lang$core$Result$Err(
-						_elm_lang$virtual_dom$VirtualDom_Overlay$BadImport(report));
-				case 'Risky':
-					return _elm_lang$core$Result$Err(
-						A2(_elm_lang$virtual_dom$VirtualDom_Overlay$RiskyImport, report, _p14));
-				default:
-					return _elm_lang$core$Result$Ok(_p14);
-			}
-		}
-	});
-var _elm_lang$virtual_dom$VirtualDom_Overlay$BadMetadata = function (a) {
-	return {ctor: 'BadMetadata', _0: a};
-};
-var _elm_lang$virtual_dom$VirtualDom_Overlay$badMetadata = _elm_lang$virtual_dom$VirtualDom_Overlay$BadMetadata;
-var _elm_lang$virtual_dom$VirtualDom_Overlay$None = {ctor: 'None'};
-var _elm_lang$virtual_dom$VirtualDom_Overlay$none = _elm_lang$virtual_dom$VirtualDom_Overlay$None;
-var _elm_lang$virtual_dom$VirtualDom_Overlay$Proceed = {ctor: 'Proceed'};
-var _elm_lang$virtual_dom$VirtualDom_Overlay$Cancel = {ctor: 'Cancel'};
-var _elm_lang$virtual_dom$VirtualDom_Overlay$viewButtons = function (buttons) {
-	return A2(
-		_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-		{
-			ctor: '::',
-			_0: _elm_lang$virtual_dom$VirtualDom_Helpers$class('elm-overlay-message-buttons'),
-			_1: {ctor: '[]'}
-		},
-		function () {
-			var _p15 = buttons;
-			if (_p15.ctor === 'Accept') {
-				return {
-					ctor: '::',
-					_0: A3(
-						_elm_lang$virtual_dom$VirtualDom_Helpers$node,
-						'button',
-						{
-							ctor: '::',
-							_0: _elm_lang$virtual_dom$VirtualDom_Helpers$onClick(_elm_lang$virtual_dom$VirtualDom_Overlay$Proceed),
-							_1: {ctor: '[]'}
-						},
-						{
-							ctor: '::',
-							_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(_p15._0),
-							_1: {ctor: '[]'}
-						}),
-					_1: {ctor: '[]'}
-				};
-			} else {
-				return {
-					ctor: '::',
-					_0: A3(
-						_elm_lang$virtual_dom$VirtualDom_Helpers$node,
-						'button',
-						{
-							ctor: '::',
-							_0: _elm_lang$virtual_dom$VirtualDom_Helpers$onClick(_elm_lang$virtual_dom$VirtualDom_Overlay$Cancel),
-							_1: {ctor: '[]'}
-						},
-						{
-							ctor: '::',
-							_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(_p15._0),
-							_1: {ctor: '[]'}
-						}),
-					_1: {
-						ctor: '::',
-						_0: A3(
-							_elm_lang$virtual_dom$VirtualDom_Helpers$node,
-							'button',
-							{
-								ctor: '::',
-								_0: _elm_lang$virtual_dom$VirtualDom_Helpers$onClick(_elm_lang$virtual_dom$VirtualDom_Overlay$Proceed),
-								_1: {ctor: '[]'}
-							},
-							{
-								ctor: '::',
-								_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(_p15._1),
-								_1: {ctor: '[]'}
-							}),
-						_1: {ctor: '[]'}
-					}
-				};
-			}
-		}());
-};
-var _elm_lang$virtual_dom$VirtualDom_Overlay$Message = {ctor: 'Message'};
-var _elm_lang$virtual_dom$VirtualDom_Overlay$viewMessage = F4(
-	function (config, title, details, buttons) {
-		return {
-			ctor: '_Tuple2',
-			_0: _elm_lang$virtual_dom$VirtualDom_Overlay$Message,
-			_1: {
-				ctor: '::',
-				_0: A2(
-					_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-					{
-						ctor: '::',
-						_0: _elm_lang$virtual_dom$VirtualDom_Helpers$class('elm-overlay-message'),
-						_1: {ctor: '[]'}
-					},
-					{
-						ctor: '::',
-						_0: A2(
-							_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-							{
-								ctor: '::',
-								_0: _elm_lang$virtual_dom$VirtualDom_Helpers$class('elm-overlay-message-title'),
-								_1: {ctor: '[]'}
-							},
-							{
-								ctor: '::',
-								_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(title),
-								_1: {ctor: '[]'}
-							}),
-						_1: {
-							ctor: '::',
-							_0: A2(
-								_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-								{
-									ctor: '::',
-									_0: _elm_lang$virtual_dom$VirtualDom_Helpers$class('elm-overlay-message-details'),
-									_1: {ctor: '[]'}
-								},
-								details),
-							_1: {
-								ctor: '::',
-								_0: A2(
-									_elm_lang$virtual_dom$VirtualDom_Helpers$map,
-									config.wrap,
-									_elm_lang$virtual_dom$VirtualDom_Overlay$viewButtons(buttons)),
-								_1: {ctor: '[]'}
-							}
-						}
-					}),
-				_1: {ctor: '[]'}
-			}
-		};
-	});
-var _elm_lang$virtual_dom$VirtualDom_Overlay$Pause = {ctor: 'Pause'};
-var _elm_lang$virtual_dom$VirtualDom_Overlay$Normal = {ctor: 'Normal'};
-var _elm_lang$virtual_dom$VirtualDom_Overlay$Choose = F2(
-	function (a, b) {
-		return {ctor: 'Choose', _0: a, _1: b};
-	});
-var _elm_lang$virtual_dom$VirtualDom_Overlay$Accept = function (a) {
-	return {ctor: 'Accept', _0: a};
-};
-var _elm_lang$virtual_dom$VirtualDom_Overlay$viewHelp = F5(
-	function (config, isPaused, isOpen, numMsgs, state) {
-		var _p16 = state;
-		switch (_p16.ctor) {
-			case 'None':
-				var miniControls = isOpen ? {ctor: '[]'} : {
-					ctor: '::',
-					_0: A2(_elm_lang$virtual_dom$VirtualDom_Overlay$viewMiniControls, config, numMsgs),
-					_1: {ctor: '[]'}
-				};
-				return {
-					ctor: '_Tuple2',
-					_0: isPaused ? _elm_lang$virtual_dom$VirtualDom_Overlay$Pause : _elm_lang$virtual_dom$VirtualDom_Overlay$Normal,
-					_1: (isPaused && (!isOpen)) ? {
-						ctor: '::',
-						_0: _elm_lang$virtual_dom$VirtualDom_Overlay$viewResume(config),
-						_1: miniControls
-					} : miniControls
-				};
-			case 'BadMetadata':
-				return A4(
-					_elm_lang$virtual_dom$VirtualDom_Overlay$viewMessage,
-					config,
-					'Cannot use Import or Export',
-					_elm_lang$virtual_dom$VirtualDom_Overlay$viewBadMetadata(_p16._0),
-					_elm_lang$virtual_dom$VirtualDom_Overlay$Accept('Ok'));
-			case 'BadImport':
-				return A4(
-					_elm_lang$virtual_dom$VirtualDom_Overlay$viewMessage,
-					config,
-					'Cannot Import History',
-					A2(_elm_lang$virtual_dom$VirtualDom_Overlay$viewReport, true, _p16._0),
-					_elm_lang$virtual_dom$VirtualDom_Overlay$Accept('Ok'));
-			default:
-				return A4(
-					_elm_lang$virtual_dom$VirtualDom_Overlay$viewMessage,
-					config,
-					'Warning',
-					A2(_elm_lang$virtual_dom$VirtualDom_Overlay$viewReport, false, _p16._0),
-					A2(_elm_lang$virtual_dom$VirtualDom_Overlay$Choose, 'Cancel', 'Import Anyway'));
-		}
-	});
-var _elm_lang$virtual_dom$VirtualDom_Overlay$view = F5(
-	function (config, isPaused, isOpen, numMsgs, state) {
-		var _p17 = A5(_elm_lang$virtual_dom$VirtualDom_Overlay$viewHelp, config, isPaused, isOpen, numMsgs, state);
-		var block = _p17._0;
-		var nodes = _p17._1;
-		return {
-			ctor: '_Tuple2',
-			_0: block,
-			_1: A2(
-				_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-				{
-					ctor: '::',
-					_0: _elm_lang$virtual_dom$VirtualDom_Helpers$class('elm-overlay'),
-					_1: {ctor: '[]'}
-				},
-				{ctor: '::', _0: _elm_lang$virtual_dom$VirtualDom_Overlay$styles, _1: nodes})
-		};
-	});
-
-var _elm_lang$virtual_dom$VirtualDom_Debug$styles = A3(
-	_elm_lang$virtual_dom$VirtualDom_Helpers$node,
-	'style',
-	{ctor: '[]'},
-	{
-		ctor: '::',
-		_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text('\n\nhtml {\n    overflow: hidden;\n    height: 100%;\n}\n\nbody {\n    height: 100%;\n    overflow: auto;\n}\n\n#debugger {\n  width: 100%\n  height: 100%;\n  font-family: monospace;\n}\n\n#values {\n  display: block;\n  float: left;\n  height: 100%;\n  width: calc(100% - 30ch);\n  margin: 0;\n  overflow: auto;\n  cursor: default;\n}\n\n.debugger-sidebar {\n  display: block;\n  float: left;\n  width: 30ch;\n  height: 100%;\n  color: white;\n  background-color: rgb(61, 61, 61);\n}\n\n.debugger-sidebar-controls {\n  width: 100%;\n  text-align: center;\n  background-color: rgb(50, 50, 50);\n}\n\n.debugger-sidebar-controls-import-export {\n  width: 100%;\n  height: 24px;\n  line-height: 24px;\n  font-size: 12px;\n}\n\n.debugger-sidebar-controls-resume {\n  width: 100%;\n  height: 30px;\n  line-height: 30px;\n  cursor: pointer;\n}\n\n.debugger-sidebar-controls-resume:hover {\n  background-color: rgb(41, 41, 41);\n}\n\n.debugger-sidebar-messages {\n  width: 100%;\n  overflow-y: auto;\n  height: calc(100% - 24px);\n}\n\n.debugger-sidebar-messages-paused {\n  width: 100%;\n  overflow-y: auto;\n  height: calc(100% - 54px);\n}\n\n.messages-entry {\n  cursor: pointer;\n  width: 100%;\n}\n\n.messages-entry:hover {\n  background-color: rgb(41, 41, 41);\n}\n\n.messages-entry-selected, .messages-entry-selected:hover {\n  background-color: rgb(10, 10, 10);\n}\n\n.messages-entry-content {\n  width: calc(100% - 7ch);\n  padding-top: 4px;\n  padding-bottom: 4px;\n  padding-left: 1ch;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n  overflow: hidden;\n  display: inline-block;\n}\n\n.messages-entry-index {\n  color: #666;\n  width: 5ch;\n  padding-top: 4px;\n  padding-bottom: 4px;\n  padding-right: 1ch;\n  text-align: right;\n  display: block;\n  float: right;\n}\n\n'),
-		_1: {ctor: '[]'}
-	});
-var _elm_lang$virtual_dom$VirtualDom_Debug$button = F2(
-	function (msg, label) {
-		return A2(
-			_elm_lang$virtual_dom$VirtualDom_Helpers$span,
-			{
-				ctor: '::',
-				_0: _elm_lang$virtual_dom$VirtualDom_Helpers$onClick(msg),
-				_1: {
-					ctor: '::',
-					_0: _elm_lang$virtual_dom$VirtualDom_Helpers$style(
-						{
-							ctor: '::',
-							_0: {ctor: '_Tuple2', _0: 'cursor', _1: 'pointer'},
-							_1: {ctor: '[]'}
-						}),
-					_1: {ctor: '[]'}
-				}
-			},
-			{
-				ctor: '::',
-				_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(label),
-				_1: {ctor: '[]'}
-			});
-	});
-var _elm_lang$virtual_dom$VirtualDom_Debug$getLatestModel = function (state) {
-	var _p0 = state;
-	if (_p0.ctor === 'Running') {
-		return _p0._0;
-	} else {
-		return _p0._2;
-	}
-};
-var _elm_lang$virtual_dom$VirtualDom_Debug$withGoodMetadata = F2(
-	function (model, func) {
-		var _p1 = model.metadata;
-		if (_p1.ctor === 'Ok') {
-			return func(_p1._0);
-		} else {
-			return A2(
-				_elm_lang$core$Platform_Cmd_ops['!'],
-				_elm_lang$core$Native_Utils.update(
-					model,
-					{
-						overlay: _elm_lang$virtual_dom$VirtualDom_Overlay$badMetadata(_p1._0)
-					}),
-				{ctor: '[]'});
-		}
-	});
-var _elm_lang$virtual_dom$VirtualDom_Debug$Model = F6(
-	function (a, b, c, d, e, f) {
-		return {history: a, state: b, expando: c, metadata: d, overlay: e, isDebuggerOpen: f};
-	});
-var _elm_lang$virtual_dom$VirtualDom_Debug$Paused = F3(
-	function (a, b, c) {
-		return {ctor: 'Paused', _0: a, _1: b, _2: c};
-	});
-var _elm_lang$virtual_dom$VirtualDom_Debug$Running = function (a) {
-	return {ctor: 'Running', _0: a};
-};
-var _elm_lang$virtual_dom$VirtualDom_Debug$loadNewHistory = F3(
-	function (rawHistory, userUpdate, model) {
-		var pureUserUpdate = F2(
-			function (msg, userModel) {
-				return _elm_lang$core$Tuple$first(
-					A2(userUpdate, msg, userModel));
-			});
-		var initialUserModel = _elm_lang$virtual_dom$VirtualDom_History$initialModel(model.history);
-		var decoder = A2(_elm_lang$virtual_dom$VirtualDom_History$decoder, initialUserModel, pureUserUpdate);
-		var _p2 = A2(_elm_lang$core$Json_Decode$decodeValue, decoder, rawHistory);
-		if (_p2.ctor === 'Err') {
-			return A2(
-				_elm_lang$core$Platform_Cmd_ops['!'],
-				_elm_lang$core$Native_Utils.update(
-					model,
-					{overlay: _elm_lang$virtual_dom$VirtualDom_Overlay$corruptImport}),
-				{ctor: '[]'});
-		} else {
-			var _p3 = _p2._0._0;
-			return A2(
-				_elm_lang$core$Platform_Cmd_ops['!'],
-				_elm_lang$core$Native_Utils.update(
-					model,
-					{
-						history: _p2._0._1,
-						state: _elm_lang$virtual_dom$VirtualDom_Debug$Running(_p3),
-						expando: _elm_lang$virtual_dom$VirtualDom_Expando$init(_p3),
-						overlay: _elm_lang$virtual_dom$VirtualDom_Overlay$none
-					}),
-				{ctor: '[]'});
-		}
-	});
-var _elm_lang$virtual_dom$VirtualDom_Debug$OverlayMsg = function (a) {
-	return {ctor: 'OverlayMsg', _0: a};
-};
-var _elm_lang$virtual_dom$VirtualDom_Debug$Upload = function (a) {
-	return {ctor: 'Upload', _0: a};
-};
-var _elm_lang$virtual_dom$VirtualDom_Debug$upload = A2(_elm_lang$core$Task$perform, _elm_lang$virtual_dom$VirtualDom_Debug$Upload, _elm_lang$virtual_dom$Native_Debug.upload);
-var _elm_lang$virtual_dom$VirtualDom_Debug$Export = {ctor: 'Export'};
-var _elm_lang$virtual_dom$VirtualDom_Debug$Import = {ctor: 'Import'};
-var _elm_lang$virtual_dom$VirtualDom_Debug$Down = {ctor: 'Down'};
-var _elm_lang$virtual_dom$VirtualDom_Debug$Up = {ctor: 'Up'};
-var _elm_lang$virtual_dom$VirtualDom_Debug$Close = {ctor: 'Close'};
-var _elm_lang$virtual_dom$VirtualDom_Debug$Open = {ctor: 'Open'};
-var _elm_lang$virtual_dom$VirtualDom_Debug$Jump = function (a) {
-	return {ctor: 'Jump', _0: a};
-};
-var _elm_lang$virtual_dom$VirtualDom_Debug$Resume = {ctor: 'Resume'};
-var _elm_lang$virtual_dom$VirtualDom_Debug$overlayConfig = {resume: _elm_lang$virtual_dom$VirtualDom_Debug$Resume, open: _elm_lang$virtual_dom$VirtualDom_Debug$Open, importHistory: _elm_lang$virtual_dom$VirtualDom_Debug$Import, exportHistory: _elm_lang$virtual_dom$VirtualDom_Debug$Export, wrap: _elm_lang$virtual_dom$VirtualDom_Debug$OverlayMsg};
-var _elm_lang$virtual_dom$VirtualDom_Debug$viewIn = function (_p4) {
-	var _p5 = _p4;
-	var isPaused = function () {
-		var _p6 = _p5.state;
-		if (_p6.ctor === 'Running') {
-			return false;
-		} else {
-			return true;
-		}
-	}();
-	return A5(
-		_elm_lang$virtual_dom$VirtualDom_Overlay$view,
-		_elm_lang$virtual_dom$VirtualDom_Debug$overlayConfig,
-		isPaused,
-		_p5.isDebuggerOpen,
-		_elm_lang$virtual_dom$VirtualDom_History$size(_p5.history),
-		_p5.overlay);
-};
-var _elm_lang$virtual_dom$VirtualDom_Debug$resumeButton = A2(
-	_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-	{
-		ctor: '::',
-		_0: _elm_lang$virtual_dom$VirtualDom_Helpers$onClick(_elm_lang$virtual_dom$VirtualDom_Debug$Resume),
-		_1: {
-			ctor: '::',
-			_0: _elm_lang$virtual_dom$VirtualDom_Helpers$class('debugger-sidebar-controls-resume'),
-			_1: {ctor: '[]'}
-		}
-	},
-	{
-		ctor: '::',
-		_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text('Resume'),
-		_1: {ctor: '[]'}
-	});
-var _elm_lang$virtual_dom$VirtualDom_Debug$viewResumeButton = function (maybeIndex) {
-	var _p7 = maybeIndex;
-	if (_p7.ctor === 'Nothing') {
-		return _elm_lang$virtual_dom$VirtualDom_Helpers$text('');
-	} else {
-		return _elm_lang$virtual_dom$VirtualDom_Debug$resumeButton;
-	}
-};
-var _elm_lang$virtual_dom$VirtualDom_Debug$playButton = function (maybeIndex) {
-	return A2(
-		_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-		{
-			ctor: '::',
-			_0: _elm_lang$virtual_dom$VirtualDom_Helpers$class('debugger-sidebar-controls'),
-			_1: {ctor: '[]'}
-		},
-		{
-			ctor: '::',
-			_0: _elm_lang$virtual_dom$VirtualDom_Debug$viewResumeButton(maybeIndex),
-			_1: {
-				ctor: '::',
-				_0: A2(
-					_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-					{
-						ctor: '::',
-						_0: _elm_lang$virtual_dom$VirtualDom_Helpers$class('debugger-sidebar-controls-import-export'),
-						_1: {ctor: '[]'}
-					},
-					{
-						ctor: '::',
-						_0: A2(_elm_lang$virtual_dom$VirtualDom_Debug$button, _elm_lang$virtual_dom$VirtualDom_Debug$Import, 'Import'),
-						_1: {
-							ctor: '::',
-							_0: _elm_lang$virtual_dom$VirtualDom_Helpers$text(' / '),
-							_1: {
-								ctor: '::',
-								_0: A2(_elm_lang$virtual_dom$VirtualDom_Debug$button, _elm_lang$virtual_dom$VirtualDom_Debug$Export, 'Export'),
-								_1: {ctor: '[]'}
-							}
-						}
-					}),
-				_1: {ctor: '[]'}
-			}
-		});
-};
-var _elm_lang$virtual_dom$VirtualDom_Debug$viewSidebar = F2(
-	function (state, history) {
-		var maybeIndex = function () {
-			var _p8 = state;
-			if (_p8.ctor === 'Running') {
-				return _elm_lang$core$Maybe$Nothing;
-			} else {
-				return _elm_lang$core$Maybe$Just(_p8._0);
-			}
-		}();
-		return A2(
-			_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-			{
-				ctor: '::',
-				_0: _elm_lang$virtual_dom$VirtualDom_Helpers$class('debugger-sidebar'),
-				_1: {ctor: '[]'}
-			},
-			{
-				ctor: '::',
-				_0: A2(
-					_elm_lang$virtual_dom$VirtualDom_Helpers$map,
-					_elm_lang$virtual_dom$VirtualDom_Debug$Jump,
-					A2(_elm_lang$virtual_dom$VirtualDom_History$view, maybeIndex, history)),
-				_1: {
-					ctor: '::',
-					_0: _elm_lang$virtual_dom$VirtualDom_Debug$playButton(maybeIndex),
-					_1: {ctor: '[]'}
-				}
-			});
-	});
-var _elm_lang$virtual_dom$VirtualDom_Debug$ExpandoMsg = function (a) {
-	return {ctor: 'ExpandoMsg', _0: a};
-};
-var _elm_lang$virtual_dom$VirtualDom_Debug$viewOut = function (_p9) {
-	var _p10 = _p9;
-	return A2(
-		_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-		{
-			ctor: '::',
-			_0: _elm_lang$virtual_dom$VirtualDom_Helpers$id('debugger'),
-			_1: {ctor: '[]'}
-		},
-		{
-			ctor: '::',
-			_0: _elm_lang$virtual_dom$VirtualDom_Debug$styles,
-			_1: {
-				ctor: '::',
-				_0: A2(_elm_lang$virtual_dom$VirtualDom_Debug$viewSidebar, _p10.state, _p10.history),
-				_1: {
-					ctor: '::',
-					_0: A2(
-						_elm_lang$virtual_dom$VirtualDom_Helpers$map,
-						_elm_lang$virtual_dom$VirtualDom_Debug$ExpandoMsg,
-						A2(
-							_elm_lang$virtual_dom$VirtualDom_Helpers$div,
-							{
-								ctor: '::',
-								_0: _elm_lang$virtual_dom$VirtualDom_Helpers$id('values'),
-								_1: {ctor: '[]'}
-							},
-							{
-								ctor: '::',
-								_0: A2(_elm_lang$virtual_dom$VirtualDom_Expando$view, _elm_lang$core$Maybe$Nothing, _p10.expando),
-								_1: {ctor: '[]'}
-							})),
-					_1: {ctor: '[]'}
-				}
-			}
-		});
-};
-var _elm_lang$virtual_dom$VirtualDom_Debug$UserMsg = function (a) {
-	return {ctor: 'UserMsg', _0: a};
-};
-var _elm_lang$virtual_dom$VirtualDom_Debug$wrapInit = F2(
-	function (metadata, _p11) {
-		var _p12 = _p11;
-		var _p13 = _p12._0;
-		return A2(
-			_elm_lang$core$Platform_Cmd_ops['!'],
-			{
-				history: _elm_lang$virtual_dom$VirtualDom_History$empty(_p13),
-				state: _elm_lang$virtual_dom$VirtualDom_Debug$Running(_p13),
-				expando: _elm_lang$virtual_dom$VirtualDom_Expando$init(_p13),
-				metadata: _elm_lang$virtual_dom$VirtualDom_Metadata$decode(metadata),
-				overlay: _elm_lang$virtual_dom$VirtualDom_Overlay$none,
-				isDebuggerOpen: false
-			},
-			{
-				ctor: '::',
-				_0: A2(_elm_lang$core$Platform_Cmd$map, _elm_lang$virtual_dom$VirtualDom_Debug$UserMsg, _p12._1),
-				_1: {ctor: '[]'}
-			});
-	});
-var _elm_lang$virtual_dom$VirtualDom_Debug$wrapSubs = F2(
-	function (userSubscriptions, _p14) {
-		var _p15 = _p14;
-		return A2(
-			_elm_lang$core$Platform_Sub$map,
-			_elm_lang$virtual_dom$VirtualDom_Debug$UserMsg,
-			userSubscriptions(
-				_elm_lang$virtual_dom$VirtualDom_Debug$getLatestModel(_p15.state)));
-	});
-var _elm_lang$virtual_dom$VirtualDom_Debug$wrapView = F2(
-	function (userView, _p16) {
-		var _p17 = _p16;
-		var currentModel = function () {
-			var _p18 = _p17.state;
-			if (_p18.ctor === 'Running') {
-				return _p18._0;
-			} else {
-				return _p18._1;
-			}
-		}();
-		return A2(
-			_elm_lang$virtual_dom$VirtualDom_Helpers$map,
-			_elm_lang$virtual_dom$VirtualDom_Debug$UserMsg,
-			userView(currentModel));
-	});
-var _elm_lang$virtual_dom$VirtualDom_Debug$NoOp = {ctor: 'NoOp'};
-var _elm_lang$virtual_dom$VirtualDom_Debug$download = F2(
-	function (metadata, history) {
-		var json = _elm_lang$core$Json_Encode$object(
-			{
-				ctor: '::',
-				_0: {
-					ctor: '_Tuple2',
-					_0: 'metadata',
-					_1: _elm_lang$virtual_dom$VirtualDom_Metadata$encode(metadata)
-				},
-				_1: {
-					ctor: '::',
-					_0: {
-						ctor: '_Tuple2',
-						_0: 'history',
-						_1: _elm_lang$virtual_dom$VirtualDom_History$encode(history)
-					},
-					_1: {ctor: '[]'}
-				}
-			});
-		var historyLength = _elm_lang$virtual_dom$VirtualDom_History$size(history);
-		return A2(
-			_elm_lang$core$Task$perform,
-			function (_p19) {
-				return _elm_lang$virtual_dom$VirtualDom_Debug$NoOp;
-			},
-			A2(_elm_lang$virtual_dom$Native_Debug.download, historyLength, json));
-	});
-var _elm_lang$virtual_dom$VirtualDom_Debug$runIf = F2(
-	function (bool, task) {
-		return bool ? A2(
-			_elm_lang$core$Task$perform,
-			_elm_lang$core$Basics$always(_elm_lang$virtual_dom$VirtualDom_Debug$NoOp),
-			task) : _elm_lang$core$Platform_Cmd$none;
-	});
-var _elm_lang$virtual_dom$VirtualDom_Debug$updateUserMsg = F4(
-	function (userUpdate, scrollTask, userMsg, _p20) {
-		var _p21 = _p20;
-		var _p25 = _p21.state;
-		var _p24 = _p21;
-		var userModel = _elm_lang$virtual_dom$VirtualDom_Debug$getLatestModel(_p25);
-		var newHistory = A3(_elm_lang$virtual_dom$VirtualDom_History$add, userMsg, userModel, _p21.history);
-		var _p22 = A2(userUpdate, userMsg, userModel);
-		var newUserModel = _p22._0;
-		var userCmds = _p22._1;
-		var commands = A2(_elm_lang$core$Platform_Cmd$map, _elm_lang$virtual_dom$VirtualDom_Debug$UserMsg, userCmds);
-		var _p23 = _p25;
-		if (_p23.ctor === 'Running') {
-			return A2(
-				_elm_lang$core$Platform_Cmd_ops['!'],
-				_elm_lang$core$Native_Utils.update(
-					_p24,
-					{
-						history: newHistory,
-						state: _elm_lang$virtual_dom$VirtualDom_Debug$Running(newUserModel),
-						expando: A2(_elm_lang$virtual_dom$VirtualDom_Expando$merge, newUserModel, _p21.expando)
-					}),
-				{
-					ctor: '::',
-					_0: commands,
-					_1: {
-						ctor: '::',
-						_0: A2(_elm_lang$virtual_dom$VirtualDom_Debug$runIf, _p24.isDebuggerOpen, scrollTask),
-						_1: {ctor: '[]'}
-					}
-				});
-		} else {
-			return A2(
-				_elm_lang$core$Platform_Cmd_ops['!'],
-				_elm_lang$core$Native_Utils.update(
-					_p24,
-					{
-						history: newHistory,
-						state: A3(_elm_lang$virtual_dom$VirtualDom_Debug$Paused, _p23._0, _p23._1, newUserModel)
-					}),
-				{
-					ctor: '::',
-					_0: commands,
-					_1: {ctor: '[]'}
-				});
-		}
-	});
-var _elm_lang$virtual_dom$VirtualDom_Debug$wrapUpdate = F4(
-	function (userUpdate, scrollTask, msg, model) {
-		wrapUpdate:
-		while (true) {
-			var _p26 = msg;
-			switch (_p26.ctor) {
-				case 'NoOp':
-					return A2(
-						_elm_lang$core$Platform_Cmd_ops['!'],
-						model,
-						{ctor: '[]'});
-				case 'UserMsg':
-					return A4(_elm_lang$virtual_dom$VirtualDom_Debug$updateUserMsg, userUpdate, scrollTask, _p26._0, model);
-				case 'ExpandoMsg':
-					return A2(
-						_elm_lang$core$Platform_Cmd_ops['!'],
-						_elm_lang$core$Native_Utils.update(
-							model,
-							{
-								expando: A2(_elm_lang$virtual_dom$VirtualDom_Expando$update, _p26._0, model.expando)
-							}),
-						{ctor: '[]'});
-				case 'Resume':
-					var _p27 = model.state;
-					if (_p27.ctor === 'Running') {
-						return A2(
-							_elm_lang$core$Platform_Cmd_ops['!'],
-							model,
-							{ctor: '[]'});
-					} else {
-						var _p28 = _p27._2;
-						return A2(
-							_elm_lang$core$Platform_Cmd_ops['!'],
-							_elm_lang$core$Native_Utils.update(
-								model,
-								{
-									state: _elm_lang$virtual_dom$VirtualDom_Debug$Running(_p28),
-									expando: A2(_elm_lang$virtual_dom$VirtualDom_Expando$merge, _p28, model.expando)
-								}),
-							{
-								ctor: '::',
-								_0: A2(_elm_lang$virtual_dom$VirtualDom_Debug$runIf, model.isDebuggerOpen, scrollTask),
-								_1: {ctor: '[]'}
-							});
-					}
-				case 'Jump':
-					var _p30 = _p26._0;
-					var _p29 = A3(_elm_lang$virtual_dom$VirtualDom_History$get, userUpdate, _p30, model.history);
-					var indexModel = _p29._0;
-					var indexMsg = _p29._1;
-					return A2(
-						_elm_lang$core$Platform_Cmd_ops['!'],
-						_elm_lang$core$Native_Utils.update(
-							model,
-							{
-								state: A3(
-									_elm_lang$virtual_dom$VirtualDom_Debug$Paused,
-									_p30,
-									indexModel,
-									_elm_lang$virtual_dom$VirtualDom_Debug$getLatestModel(model.state)),
-								expando: A2(_elm_lang$virtual_dom$VirtualDom_Expando$merge, indexModel, model.expando)
-							}),
-						{ctor: '[]'});
-				case 'Open':
-					return A2(
-						_elm_lang$core$Platform_Cmd_ops['!'],
-						_elm_lang$core$Native_Utils.update(
-							model,
-							{isDebuggerOpen: true}),
-						{ctor: '[]'});
-				case 'Close':
-					return A2(
-						_elm_lang$core$Platform_Cmd_ops['!'],
-						_elm_lang$core$Native_Utils.update(
-							model,
-							{isDebuggerOpen: false}),
-						{ctor: '[]'});
-				case 'Up':
-					var index = function () {
-						var _p31 = model.state;
-						if (_p31.ctor === 'Paused') {
-							return _p31._0;
-						} else {
-							return _elm_lang$virtual_dom$VirtualDom_History$size(model.history);
-						}
-					}();
-					if (_elm_lang$core$Native_Utils.cmp(index, 0) > 0) {
-						var _v17 = userUpdate,
-							_v18 = scrollTask,
-							_v19 = _elm_lang$virtual_dom$VirtualDom_Debug$Jump(index - 1),
-							_v20 = model;
-						userUpdate = _v17;
-						scrollTask = _v18;
-						msg = _v19;
-						model = _v20;
-						continue wrapUpdate;
-					} else {
-						return A2(
-							_elm_lang$core$Platform_Cmd_ops['!'],
-							model,
-							{ctor: '[]'});
-					}
-				case 'Down':
-					var _p32 = model.state;
-					if (_p32.ctor === 'Running') {
-						return A2(
-							_elm_lang$core$Platform_Cmd_ops['!'],
-							model,
-							{ctor: '[]'});
-					} else {
-						var _p33 = _p32._0;
-						if (_elm_lang$core$Native_Utils.eq(
-							_p33,
-							_elm_lang$virtual_dom$VirtualDom_History$size(model.history) - 1)) {
-							var _v22 = userUpdate,
-								_v23 = scrollTask,
-								_v24 = _elm_lang$virtual_dom$VirtualDom_Debug$Resume,
-								_v25 = model;
-							userUpdate = _v22;
-							scrollTask = _v23;
-							msg = _v24;
-							model = _v25;
-							continue wrapUpdate;
-						} else {
-							var _v26 = userUpdate,
-								_v27 = scrollTask,
-								_v28 = _elm_lang$virtual_dom$VirtualDom_Debug$Jump(_p33 + 1),
-								_v29 = model;
-							userUpdate = _v26;
-							scrollTask = _v27;
-							msg = _v28;
-							model = _v29;
-							continue wrapUpdate;
-						}
-					}
-				case 'Import':
-					return A2(
-						_elm_lang$virtual_dom$VirtualDom_Debug$withGoodMetadata,
-						model,
-						function (_p34) {
-							return A2(
-								_elm_lang$core$Platform_Cmd_ops['!'],
-								model,
-								{
-									ctor: '::',
-									_0: _elm_lang$virtual_dom$VirtualDom_Debug$upload,
-									_1: {ctor: '[]'}
-								});
-						});
-				case 'Export':
-					return A2(
-						_elm_lang$virtual_dom$VirtualDom_Debug$withGoodMetadata,
-						model,
-						function (metadata) {
-							return A2(
-								_elm_lang$core$Platform_Cmd_ops['!'],
-								model,
-								{
-									ctor: '::',
-									_0: A2(_elm_lang$virtual_dom$VirtualDom_Debug$download, metadata, model.history),
-									_1: {ctor: '[]'}
-								});
-						});
-				case 'Upload':
-					return A2(
-						_elm_lang$virtual_dom$VirtualDom_Debug$withGoodMetadata,
-						model,
-						function (metadata) {
-							var _p35 = A2(_elm_lang$virtual_dom$VirtualDom_Overlay$assessImport, metadata, _p26._0);
-							if (_p35.ctor === 'Err') {
-								return A2(
-									_elm_lang$core$Platform_Cmd_ops['!'],
-									_elm_lang$core$Native_Utils.update(
-										model,
-										{overlay: _p35._0}),
-									{ctor: '[]'});
-							} else {
-								return A3(_elm_lang$virtual_dom$VirtualDom_Debug$loadNewHistory, _p35._0, userUpdate, model);
-							}
-						});
-				default:
-					var _p36 = A2(_elm_lang$virtual_dom$VirtualDom_Overlay$close, _p26._0, model.overlay);
-					if (_p36.ctor === 'Nothing') {
-						return A2(
-							_elm_lang$core$Platform_Cmd_ops['!'],
-							_elm_lang$core$Native_Utils.update(
-								model,
-								{overlay: _elm_lang$virtual_dom$VirtualDom_Overlay$none}),
-							{ctor: '[]'});
-					} else {
-						return A3(_elm_lang$virtual_dom$VirtualDom_Debug$loadNewHistory, _p36._0, userUpdate, model);
-					}
-			}
-		}
-	});
-var _elm_lang$virtual_dom$VirtualDom_Debug$wrap = F2(
-	function (metadata, _p37) {
-		var _p38 = _p37;
-		return {
-			init: A2(_elm_lang$virtual_dom$VirtualDom_Debug$wrapInit, metadata, _p38.init),
-			view: _elm_lang$virtual_dom$VirtualDom_Debug$wrapView(_p38.view),
-			update: _elm_lang$virtual_dom$VirtualDom_Debug$wrapUpdate(_p38.update),
-			viewIn: _elm_lang$virtual_dom$VirtualDom_Debug$viewIn,
-			viewOut: _elm_lang$virtual_dom$VirtualDom_Debug$viewOut,
-			subscriptions: _elm_lang$virtual_dom$VirtualDom_Debug$wrapSubs(_p38.subscriptions)
-		};
-	});
-var _elm_lang$virtual_dom$VirtualDom_Debug$wrapWithFlags = F2(
-	function (metadata, _p39) {
-		var _p40 = _p39;
-		return {
-			init: function (flags) {
-				return A2(
-					_elm_lang$virtual_dom$VirtualDom_Debug$wrapInit,
-					metadata,
-					_p40.init(flags));
-			},
-			view: _elm_lang$virtual_dom$VirtualDom_Debug$wrapView(_p40.view),
-			update: _elm_lang$virtual_dom$VirtualDom_Debug$wrapUpdate(_p40.update),
-			viewIn: _elm_lang$virtual_dom$VirtualDom_Debug$viewIn,
-			viewOut: _elm_lang$virtual_dom$VirtualDom_Debug$viewOut,
-			subscriptions: _elm_lang$virtual_dom$VirtualDom_Debug$wrapSubs(_p40.subscriptions)
-		};
-	});
-
 var _elm_lang$virtual_dom$VirtualDom$programWithFlags = function (impl) {
 	return A2(_elm_lang$virtual_dom$Native_VirtualDom.programWithFlags, _elm_lang$virtual_dom$VirtualDom_Debug$wrapWithFlags, impl);
 };
@@ -14145,9 +10186,25 @@ var _mdgriffith$stylish_elephants$Internal_Style$class = function (cls) {
 			return '.se.spacer';
 	}
 };
+var _mdgriffith$stylish_elephants$Internal_Style$lenToString = function (len) {
+	var _p1 = len;
+	if (_p1.ctor === 'Shrink') {
+		return 'content';
+	} else {
+		return 'fill';
+	}
+};
+var _mdgriffith$stylish_elephants$Internal_Style$dimensionToString = function (x) {
+	var _p2 = x;
+	if (_p2.ctor === 'Width') {
+		return 'width';
+	} else {
+		return 'height';
+	}
+};
 var _mdgriffith$stylish_elephants$Internal_Style$locationName = function (loc) {
-	var _p1 = loc;
-	switch (_p1.ctor) {
+	var _p3 = loc;
+	switch (_p3.ctor) {
 		case 'Above':
 			return '.above';
 		case 'Below':
@@ -14163,8 +10220,8 @@ var _mdgriffith$stylish_elephants$Internal_Style$locationName = function (loc) {
 	}
 };
 var _mdgriffith$stylish_elephants$Internal_Style$contentName = function (desc) {
-	var _p2 = desc;
-	switch (_p2._0.ctor) {
+	var _p4 = desc;
+	switch (_p4._0.ctor) {
 		case 'Top':
 			return '.content-top';
 		case 'Bottom':
@@ -14180,8 +10237,8 @@ var _mdgriffith$stylish_elephants$Internal_Style$contentName = function (desc) {
 	}
 };
 var _mdgriffith$stylish_elephants$Internal_Style$selfName = function (desc) {
-	var _p3 = desc;
-	switch (_p3._0.ctor) {
+	var _p5 = desc;
+	switch (_p5._0.ctor) {
 		case 'Top':
 			return '.self-top';
 		case 'Bottom':
@@ -14224,12 +10281,12 @@ var _mdgriffith$stylish_elephants$Internal_Style$Prop = F2(
 		return {ctor: 'Prop', _0: a, _1: b};
 	});
 var _mdgriffith$stylish_elephants$Internal_Style$makeImportant = function (rule) {
-	var _p4 = rule;
-	if (_p4.ctor === 'Prop') {
+	var _p6 = rule;
+	if (_p6.ctor === 'Prop') {
 		return A2(
 			_mdgriffith$stylish_elephants$Internal_Style$Prop,
-			_p4._0,
-			A2(_elm_lang$core$Basics_ops['++'], _p4._1, ' !important'));
+			_p6._0,
+			A2(_elm_lang$core$Basics_ops['++'], _p6._1, ' !important'));
 	} else {
 		return rule;
 	}
@@ -14274,9 +10331,9 @@ var _mdgriffith$stylish_elephants$Internal_Style$Below = {ctor: 'Below'};
 var _mdgriffith$stylish_elephants$Internal_Style$Above = {ctor: 'Above'};
 var _mdgriffith$stylish_elephants$Internal_Style$locations = function () {
 	var loc = _mdgriffith$stylish_elephants$Internal_Style$Above;
-	var _p5 = function () {
-		var _p6 = loc;
-		switch (_p6.ctor) {
+	var _p7 = function () {
+		var _p8 = loc;
+		switch (_p8.ctor) {
 			case 'Above':
 				return {ctor: '_Tuple0'};
 			case 'Below':
@@ -14317,6 +10374,44 @@ var _mdgriffith$stylish_elephants$Internal_Style$locations = function () {
 		}
 	};
 }();
+var _mdgriffith$stylish_elephants$Internal_Style$Fill = {ctor: 'Fill'};
+var _mdgriffith$stylish_elephants$Internal_Style$Shrink = {ctor: 'Shrink'};
+var _mdgriffith$stylish_elephants$Internal_Style$lengths = {
+	ctor: '::',
+	_0: _mdgriffith$stylish_elephants$Internal_Style$Shrink,
+	_1: {
+		ctor: '::',
+		_0: _mdgriffith$stylish_elephants$Internal_Style$Fill,
+		_1: {ctor: '[]'}
+	}
+};
+var _mdgriffith$stylish_elephants$Internal_Style$describeLength = F2(
+	function (dimension, lenValue) {
+		var name = _mdgriffith$stylish_elephants$Internal_Style$dimensionToString(dimension);
+		var renderLengthRule = function (len) {
+			return A2(
+				_mdgriffith$stylish_elephants$Internal_Style$Child,
+				A2(
+					_elm_lang$core$Basics_ops['++'],
+					'.',
+					A2(
+						_elm_lang$core$Basics_ops['++'],
+						name,
+						A2(
+							_elm_lang$core$Basics_ops['++'],
+							'-',
+							_mdgriffith$stylish_elephants$Internal_Style$lenToString(len)))),
+				{
+					ctor: '::',
+					_0: lenValue(len),
+					_1: {ctor: '[]'}
+				});
+		};
+		return _mdgriffith$stylish_elephants$Internal_Style$Batch(
+			A2(_elm_lang$core$List$map, renderLengthRule, _mdgriffith$stylish_elephants$Internal_Style$lengths));
+	});
+var _mdgriffith$stylish_elephants$Internal_Style$Height = {ctor: 'Height'};
+var _mdgriffith$stylish_elephants$Internal_Style$Width = {ctor: 'Width'};
 var _mdgriffith$stylish_elephants$Internal_Style$Self = function (a) {
 	return {ctor: 'Self', _0: a};
 };
@@ -14356,9 +10451,9 @@ var _mdgriffith$stylish_elephants$Internal_Style$alignments = {
 };
 var _mdgriffith$stylish_elephants$Internal_Style$describeAlignment = function (values) {
 	var createDescription = function (alignment) {
-		var _p7 = values(alignment);
-		var content = _p7._0;
-		var indiv = _p7._1;
+		var _p9 = values(alignment);
+		var content = _p9._0;
+		var indiv = _p9._1;
 		return {
 			ctor: '::',
 			_0: A2(
@@ -14423,20 +10518,20 @@ var _mdgriffith$stylish_elephants$Internal_Style$emptyIntermediate = F2(
 			});
 	});
 var _mdgriffith$stylish_elephants$Internal_Style$renderRules = F2(
-	function (_p8, rules) {
-		var _p9 = _p8;
-		var _p11 = _p9._0;
+	function (_p10, rules) {
+		var _p11 = _p10;
+		var _p13 = _p11._0;
 		var generateIntermediates = F2(
 			function (rule, rendered) {
-				var _p10 = rule;
-				switch (_p10.ctor) {
+				var _p12 = rule;
+				switch (_p12.ctor) {
 					case 'Prop':
 						return _elm_lang$core$Native_Utils.update(
 							rendered,
 							{
 								props: {
 									ctor: '::',
-									_0: {ctor: '_Tuple2', _0: _p10._0, _1: _p10._1},
+									_0: {ctor: '_Tuple2', _0: _p12._0, _1: _p12._1},
 									_1: rendered.props
 								}
 							});
@@ -14453,15 +10548,15 @@ var _mdgriffith$stylish_elephants$Internal_Style$renderRules = F2(
 												'@supports (',
 												A2(
 													_elm_lang$core$Basics_ops['++'],
-													_p10._0._0,
+													_p12._0._0,
 													A2(
 														_elm_lang$core$Basics_ops['++'],
 														':',
 														A2(
 															_elm_lang$core$Basics_ops['++'],
-															_p10._0._1,
-															A2(_elm_lang$core$Basics_ops['++'], ') {', _p11.selector))))),
-											props: _p10._1,
+															_p12._0._1,
+															A2(_elm_lang$core$Basics_ops['++'], ') {', _p13.selector))))),
+											props: _p12._1,
 											closing: '\n}',
 											others: {ctor: '[]'}
 										}),
@@ -14480,10 +10575,10 @@ var _mdgriffith$stylish_elephants$Internal_Style$renderRules = F2(
 											_mdgriffith$stylish_elephants$Internal_Style$emptyIntermediate,
 											A2(
 												_elm_lang$core$Basics_ops['++'],
-												_p11.selector,
-												A2(_elm_lang$core$Basics_ops['++'], ' + ', _p10._0)),
+												_p13.selector,
+												A2(_elm_lang$core$Basics_ops['++'], ' + ', _p12._0)),
 											''),
-										_p10._1),
+										_p12._1),
 									_1: rendered.others
 								}
 							});
@@ -14499,10 +10594,10 @@ var _mdgriffith$stylish_elephants$Internal_Style$renderRules = F2(
 											_mdgriffith$stylish_elephants$Internal_Style$emptyIntermediate,
 											A2(
 												_elm_lang$core$Basics_ops['++'],
-												_p11.selector,
-												A2(_elm_lang$core$Basics_ops['++'], ' > ', _p10._0)),
+												_p13.selector,
+												A2(_elm_lang$core$Basics_ops['++'], ' > ', _p12._0)),
 											''),
-										_p10._1),
+										_p12._1),
 									_1: rendered.others
 								}
 							});
@@ -14516,9 +10611,9 @@ var _mdgriffith$stylish_elephants$Internal_Style$renderRules = F2(
 										_mdgriffith$stylish_elephants$Internal_Style$renderRules,
 										A2(
 											_mdgriffith$stylish_elephants$Internal_Style$emptyIntermediate,
-											A2(_elm_lang$core$Basics_ops['++'], _p11.selector, _p10._0),
+											A2(_elm_lang$core$Basics_ops['++'], _p13.selector, _p12._0),
 											''),
-										_p10._1),
+										_p12._1),
 									_1: rendered.others
 								}
 							});
@@ -14530,15 +10625,15 @@ var _mdgriffith$stylish_elephants$Internal_Style$renderRules = F2(
 									ctor: '::',
 									_0: A2(
 										_mdgriffith$stylish_elephants$Internal_Style$renderRules,
-										A2(_mdgriffith$stylish_elephants$Internal_Style$emptyIntermediate, _p11.selector, ''),
-										_p10._0),
+										A2(_mdgriffith$stylish_elephants$Internal_Style$emptyIntermediate, _p13.selector, ''),
+										_p12._0),
 									_1: rendered.others
 								}
 							});
 				}
 			});
 		return _mdgriffith$stylish_elephants$Internal_Style$Intermediate(
-			A3(_elm_lang$core$List$foldr, generateIntermediates, _p11, rules));
+			A3(_elm_lang$core$List$foldr, generateIntermediates, _p13, rules));
 	});
 var _mdgriffith$stylish_elephants$Internal_Style$render = function (classes) {
 	var renderValues = function (values) {
@@ -14547,24 +10642,24 @@ var _mdgriffith$stylish_elephants$Internal_Style$render = function (classes) {
 			'\n',
 			A2(
 				_elm_lang$core$List$map,
-				function (_p12) {
-					var _p13 = _p12;
+				function (_p14) {
+					var _p15 = _p14;
 					return A2(
 						_elm_lang$core$Basics_ops['++'],
 						'  ',
 						A2(
 							_elm_lang$core$Basics_ops['++'],
-							_p13._0,
+							_p15._0,
 							A2(
 								_elm_lang$core$Basics_ops['++'],
 								': ',
-								A2(_elm_lang$core$Basics_ops['++'], _p13._1, ';'))));
+								A2(_elm_lang$core$Basics_ops['++'], _p15._1, ';'))));
 				},
 				values));
 	};
 	var renderClass = function (rule) {
-		var _p14 = rule.props;
-		if (_p14.ctor === '[]') {
+		var _p16 = rule.props;
+		if (_p16.ctor === '[]') {
 			return '';
 		} else {
 			return A2(
@@ -14579,16 +10674,16 @@ var _mdgriffith$stylish_elephants$Internal_Style$render = function (classes) {
 						A2(_elm_lang$core$Basics_ops['++'], rule.closing, '\n}'))));
 		}
 	};
-	var renderIntermediate = function (_p15) {
-		var _p16 = _p15;
-		var _p17 = _p16._0;
+	var renderIntermediate = function (_p17) {
+		var _p18 = _p17;
+		var _p19 = _p18._0;
 		return A2(
 			_elm_lang$core$Basics_ops['++'],
-			renderClass(_p17),
+			renderClass(_p19),
 			A2(
 				_elm_lang$core$String$join,
 				'\n',
-				A2(_elm_lang$core$List$map, renderIntermediate, _p17.others)));
+				A2(_elm_lang$core$List$map, renderIntermediate, _p19.others)));
 	};
 	return A2(
 		_elm_lang$core$String$join,
@@ -14599,14 +10694,14 @@ var _mdgriffith$stylish_elephants$Internal_Style$render = function (classes) {
 			A3(
 				_elm_lang$core$List$foldr,
 				F2(
-					function (_p18, existing) {
-						var _p19 = _p18;
+					function (_p20, existing) {
+						var _p21 = _p20;
 						return {
 							ctor: '::',
 							_0: A2(
 								_mdgriffith$stylish_elephants$Internal_Style$renderRules,
-								A2(_mdgriffith$stylish_elephants$Internal_Style$emptyIntermediate, _p19._0, ''),
-								_p19._1),
+								A2(_mdgriffith$stylish_elephants$Internal_Style$emptyIntermediate, _p21._0, ''),
+								_p21._1),
 							_1: existing
 						};
 					}),
@@ -15134,8 +11229,8 @@ var _mdgriffith$stylish_elephants$Internal_Style$rules = _mdgriffith$stylish_ele
 																																																								_elm_lang$core$List$map,
 																																																								_mdgriffith$stylish_elephants$Internal_Style$locations,
 																																																								function (loc) {
-																																																									var _p20 = loc;
-																																																									switch (_p20.ctor) {
+																																																									var _p22 = loc;
+																																																									switch (_p22.ctor) {
 																																																										case 'Above':
 																																																											return A2(
 																																																												_mdgriffith$stylish_elephants$Internal_Style$Descriptor,
@@ -15758,19 +11853,19 @@ var _mdgriffith$stylish_elephants$Internal_Style$rules = _mdgriffith$stylish_ele
 																_1: {
 																	ctor: '::',
 																	_0: A2(
-																		_mdgriffith$stylish_elephants$Internal_Style$Descriptor,
+																		_mdgriffith$stylish_elephants$Internal_Style$Child,
 																		'.width-content',
 																		{
 																			ctor: '::',
-																			_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'width', 'auto'),
+																			_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'align-self', 'left'),
 																			_1: {ctor: '[]'}
 																		}),
 																	_1: {
 																		ctor: '::',
 																		_0: _mdgriffith$stylish_elephants$Internal_Style$describeAlignment(
 																			function (alignment) {
-																				var _p21 = alignment;
-																				switch (_p21.ctor) {
+																				var _p23 = alignment;
+																				switch (_p23.ctor) {
 																					case 'Top':
 																						return {
 																							ctor: '_Tuple2',
@@ -16026,41 +12121,52 @@ var _mdgriffith$stylish_elephants$Internal_Style$rules = _mdgriffith$stylish_ele
 																				ctor: '::',
 																				_0: A2(
 																					_mdgriffith$stylish_elephants$Internal_Style$Child,
-																					'.width-fill',
+																					'.height-fill-between',
 																					{
 																						ctor: '::',
-																						_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-grow', '100000'),
-																						_1: {ctor: '[]'}
+																						_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'align-self', 'stretch'),
+																						_1: {
+																							ctor: '::',
+																							_0: A2(
+																								_mdgriffith$stylish_elephants$Internal_Style$Descriptor,
+																								'.aligned-vertically',
+																								{
+																									ctor: '::',
+																									_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'height', '100%'),
+																									_1: {ctor: '[]'}
+																								}),
+																							_1: {ctor: '[]'}
+																						}
 																					}),
 																				_1: {
 																					ctor: '::',
 																					_0: A2(
 																						_mdgriffith$stylish_elephants$Internal_Style$Child,
-																						'.spacer',
+																						'.width-fill',
 																						{
 																							ctor: '::',
-																							_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'margin-left', '0 !important'),
-																							_1: {
-																								ctor: '::',
-																								_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'height', 'auto !important'),
-																								_1: {ctor: '[]'}
-																							}
+																							_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-grow', '100000'),
+																							_1: {ctor: '[]'}
 																						}),
 																					_1: {
 																						ctor: '::',
 																						_0: A2(
 																							_mdgriffith$stylish_elephants$Internal_Style$Child,
-																							'.spacer + .se',
+																							'.spacer',
 																							{
 																								ctor: '::',
 																								_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'margin-left', '0 !important'),
-																								_1: {ctor: '[]'}
+																								_1: {
+																									ctor: '::',
+																									_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'height', 'auto !important'),
+																									_1: {ctor: '[]'}
+																								}
 																							}),
 																						_1: {
 																							ctor: '::',
 																							_0: A2(
 																								_mdgriffith$stylish_elephants$Internal_Style$Child,
-																								'.stylesheet + .se',
+																								'.spacer + .se',
 																								{
 																									ctor: '::',
 																									_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'margin-left', '0 !important'),
@@ -16070,7 +12176,7 @@ var _mdgriffith$stylish_elephants$Internal_Style$rules = _mdgriffith$stylish_ele
 																								ctor: '::',
 																								_0: A2(
 																									_mdgriffith$stylish_elephants$Internal_Style$Child,
-																									'.nearby + .se',
+																									'.stylesheet + .se',
 																									{
 																										ctor: '::',
 																										_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'margin-left', '0 !important'),
@@ -16080,35 +12186,35 @@ var _mdgriffith$stylish_elephants$Internal_Style$rules = _mdgriffith$stylish_ele
 																									ctor: '::',
 																									_0: A2(
 																										_mdgriffith$stylish_elephants$Internal_Style$Child,
-																										'.container',
+																										'.nearby + .se',
 																										{
 																											ctor: '::',
-																											_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-grow', '0'),
-																											_1: {
-																												ctor: '::',
-																												_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-basis', '0%'),
-																												_1: {
-																													ctor: '::',
-																													_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'align-self', 'stretch'),
-																													_1: {ctor: '[]'}
-																												}
-																											}
+																											_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'margin-left', '0 !important'),
+																											_1: {ctor: '[]'}
 																										}),
 																									_1: {
 																										ctor: '::',
 																										_0: A2(
 																											_mdgriffith$stylish_elephants$Internal_Style$Child,
-																											'alignLeft:last-of-type.align-container-left',
+																											'.container',
 																											{
 																												ctor: '::',
-																												_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-grow', '1'),
-																												_1: {ctor: '[]'}
+																												_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-grow', '0'),
+																												_1: {
+																													ctor: '::',
+																													_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-basis', '0%'),
+																													_1: {
+																														ctor: '::',
+																														_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'align-self', 'stretch'),
+																														_1: {ctor: '[]'}
+																													}
+																												}
 																											}),
 																										_1: {
 																											ctor: '::',
 																											_0: A2(
 																												_mdgriffith$stylish_elephants$Internal_Style$Child,
-																												'alignRight:first-of-type.align-container-right',
+																												'alignLeft:last-of-type.align-container-left',
 																												{
 																													ctor: '::',
 																													_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-grow', '1'),
@@ -16118,28 +12224,17 @@ var _mdgriffith$stylish_elephants$Internal_Style$rules = _mdgriffith$stylish_ele
 																												ctor: '::',
 																												_0: A2(
 																													_mdgriffith$stylish_elephants$Internal_Style$Child,
-																													'centerX:first-of-type.align-container-center-x',
+																													'alignRight:first-of-type.align-container-right',
 																													{
 																														ctor: '::',
 																														_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-grow', '1'),
-																														_1: {
-																															ctor: '::',
-																															_0: A2(
-																																_mdgriffith$stylish_elephants$Internal_Style$Child,
-																																'.self-center-y',
-																																{
-																																	ctor: '::',
-																																	_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'margin-bottom', '0 !important'),
-																																	_1: {ctor: '[]'}
-																																}),
-																															_1: {ctor: '[]'}
-																														}
+																														_1: {ctor: '[]'}
 																													}),
 																												_1: {
 																													ctor: '::',
 																													_0: A2(
 																														_mdgriffith$stylish_elephants$Internal_Style$Child,
-																														'centerX:last-of-type.align-container-center-x',
+																														'centerX:first-of-type.align-container-center-x',
 																														{
 																															ctor: '::',
 																															_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-grow', '1'),
@@ -16150,7 +12245,7 @@ var _mdgriffith$stylish_elephants$Internal_Style$rules = _mdgriffith$stylish_ele
 																																	'.self-center-y',
 																																	{
 																																		ctor: '::',
-																																		_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'margin-top', '0 !important'),
+																																		_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'margin-bottom', '0 !important'),
 																																		_1: {ctor: '[]'}
 																																	}),
 																																_1: {ctor: '[]'}
@@ -16160,7 +12255,7 @@ var _mdgriffith$stylish_elephants$Internal_Style$rules = _mdgriffith$stylish_ele
 																														ctor: '::',
 																														_0: A2(
 																															_mdgriffith$stylish_elephants$Internal_Style$Child,
-																															'centerX:only-of-type.align-container-center-x',
+																															'centerX:last-of-type.align-container-center-x',
 																															{
 																																ctor: '::',
 																																_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-grow', '1'),
@@ -16171,12 +12266,8 @@ var _mdgriffith$stylish_elephants$Internal_Style$rules = _mdgriffith$stylish_ele
 																																		'.self-center-y',
 																																		{
 																																			ctor: '::',
-																																			_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'margin-top', 'auto !important'),
-																																			_1: {
-																																				ctor: '::',
-																																				_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'margin-bottom', 'auto !important'),
-																																				_1: {ctor: '[]'}
-																																			}
+																																			_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'margin-top', '0 !important'),
+																																			_1: {ctor: '[]'}
 																																		}),
 																																	_1: {ctor: '[]'}
 																																}
@@ -16185,17 +12276,32 @@ var _mdgriffith$stylish_elephants$Internal_Style$rules = _mdgriffith$stylish_ele
 																															ctor: '::',
 																															_0: A2(
 																																_mdgriffith$stylish_elephants$Internal_Style$Child,
-																																'centerX:last-of-type.align-container-center-x ~ alignRight',
+																																'centerX:only-of-type.align-container-center-x',
 																																{
 																																	ctor: '::',
-																																	_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-grow', '0'),
-																																	_1: {ctor: '[]'}
+																																	_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-grow', '1'),
+																																	_1: {
+																																		ctor: '::',
+																																		_0: A2(
+																																			_mdgriffith$stylish_elephants$Internal_Style$Child,
+																																			'.self-center-y',
+																																			{
+																																				ctor: '::',
+																																				_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'margin-top', 'auto !important'),
+																																				_1: {
+																																					ctor: '::',
+																																					_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'margin-bottom', 'auto !important'),
+																																					_1: {ctor: '[]'}
+																																				}
+																																			}),
+																																		_1: {ctor: '[]'}
+																																	}
 																																}),
 																															_1: {
 																																ctor: '::',
 																																_0: A2(
 																																	_mdgriffith$stylish_elephants$Internal_Style$Child,
-																																	'alignRight:first-of-type.align-container-right ~ centerX.align-container-center-x',
+																																	'centerX:last-of-type.align-container-center-x ~ alignRight',
 																																	{
 																																		ctor: '::',
 																																		_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-grow', '0'),
@@ -16203,106 +12309,117 @@ var _mdgriffith$stylish_elephants$Internal_Style$rules = _mdgriffith$stylish_ele
 																																	}),
 																																_1: {
 																																	ctor: '::',
-																																	_0: _mdgriffith$stylish_elephants$Internal_Style$describeAlignment(
-																																		function (alignment) {
-																																			var _p22 = alignment;
-																																			switch (_p22.ctor) {
-																																				case 'Top':
-																																					return {
-																																						ctor: '_Tuple2',
-																																						_0: {
-																																							ctor: '::',
-																																							_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'align-items', 'flex-start'),
-																																							_1: {ctor: '[]'}
-																																						},
-																																						_1: {
-																																							ctor: '::',
-																																							_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'align-self', 'flex-start'),
-																																							_1: {ctor: '[]'}
-																																						}
-																																					};
-																																				case 'Bottom':
-																																					return {
-																																						ctor: '_Tuple2',
-																																						_0: {
-																																							ctor: '::',
-																																							_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'align-items', 'flex-end'),
-																																							_1: {ctor: '[]'}
-																																						},
-																																						_1: {
-																																							ctor: '::',
-																																							_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'align-self', 'flex-end'),
-																																							_1: {ctor: '[]'}
-																																						}
-																																					};
-																																				case 'Right':
-																																					return {
-																																						ctor: '_Tuple2',
-																																						_0: {
-																																							ctor: '::',
-																																							_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'justify-content', 'flex-end'),
-																																							_1: {ctor: '[]'}
-																																						},
-																																						_1: {ctor: '[]'}
-																																					};
-																																				case 'Left':
-																																					return {
-																																						ctor: '_Tuple2',
-																																						_0: {
-																																							ctor: '::',
-																																							_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'justify-content', 'flex-start'),
-																																							_1: {ctor: '[]'}
-																																						},
-																																						_1: {ctor: '[]'}
-																																					};
-																																				case 'CenterX':
-																																					return {
-																																						ctor: '_Tuple2',
-																																						_0: {
-																																							ctor: '::',
-																																							_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'justify-content', 'center'),
-																																							_1: {ctor: '[]'}
-																																						},
-																																						_1: {ctor: '[]'}
-																																					};
-																																				default:
-																																					return {
-																																						ctor: '_Tuple2',
-																																						_0: {
-																																							ctor: '::',
-																																							_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'align-items', 'center'),
-																																							_1: {ctor: '[]'}
-																																						},
-																																						_1: {
-																																							ctor: '::',
-																																							_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'align-self', 'center'),
-																																							_1: {ctor: '[]'}
-																																						}
-																																					};
-																																			}
+																																	_0: A2(
+																																		_mdgriffith$stylish_elephants$Internal_Style$Child,
+																																		'alignRight:first-of-type.align-container-right ~ centerX.align-container-center-x',
+																																		{
+																																			ctor: '::',
+																																			_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-grow', '0'),
+																																			_1: {ctor: '[]'}
 																																		}),
 																																	_1: {
 																																		ctor: '::',
-																																		_0: A2(
-																																			_mdgriffith$stylish_elephants$Internal_Style$Descriptor,
-																																			'.space-evenly',
-																																			{
-																																				ctor: '::',
-																																				_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'justify-content', 'space-between'),
-																																				_1: {
-																																					ctor: '::',
-																																					_0: A2(
-																																						_mdgriffith$stylish_elephants$Internal_Style$Child,
-																																						'.spacer',
-																																						{
-																																							ctor: '::',
-																																							_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'display', 'none'),
+																																		_0: _mdgriffith$stylish_elephants$Internal_Style$describeAlignment(
+																																			function (alignment) {
+																																				var _p24 = alignment;
+																																				switch (_p24.ctor) {
+																																					case 'Top':
+																																						return {
+																																							ctor: '_Tuple2',
+																																							_0: {
+																																								ctor: '::',
+																																								_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'align-items', 'flex-start'),
+																																								_1: {ctor: '[]'}
+																																							},
+																																							_1: {
+																																								ctor: '::',
+																																								_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'align-self', 'flex-start'),
+																																								_1: {ctor: '[]'}
+																																							}
+																																						};
+																																					case 'Bottom':
+																																						return {
+																																							ctor: '_Tuple2',
+																																							_0: {
+																																								ctor: '::',
+																																								_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'align-items', 'flex-end'),
+																																								_1: {ctor: '[]'}
+																																							},
+																																							_1: {
+																																								ctor: '::',
+																																								_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'align-self', 'flex-end'),
+																																								_1: {ctor: '[]'}
+																																							}
+																																						};
+																																					case 'Right':
+																																						return {
+																																							ctor: '_Tuple2',
+																																							_0: {
+																																								ctor: '::',
+																																								_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'justify-content', 'flex-end'),
+																																								_1: {ctor: '[]'}
+																																							},
 																																							_1: {ctor: '[]'}
-																																						}),
-																																					_1: {ctor: '[]'}
+																																						};
+																																					case 'Left':
+																																						return {
+																																							ctor: '_Tuple2',
+																																							_0: {
+																																								ctor: '::',
+																																								_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'justify-content', 'flex-start'),
+																																								_1: {ctor: '[]'}
+																																							},
+																																							_1: {ctor: '[]'}
+																																						};
+																																					case 'CenterX':
+																																						return {
+																																							ctor: '_Tuple2',
+																																							_0: {
+																																								ctor: '::',
+																																								_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'justify-content', 'center'),
+																																								_1: {ctor: '[]'}
+																																							},
+																																							_1: {ctor: '[]'}
+																																						};
+																																					default:
+																																						return {
+																																							ctor: '_Tuple2',
+																																							_0: {
+																																								ctor: '::',
+																																								_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'align-items', 'center'),
+																																								_1: {ctor: '[]'}
+																																							},
+																																							_1: {
+																																								ctor: '::',
+																																								_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'align-self', 'center'),
+																																								_1: {ctor: '[]'}
+																																							}
+																																						};
 																																				}
 																																			}),
-																																		_1: {ctor: '[]'}
+																																		_1: {
+																																			ctor: '::',
+																																			_0: A2(
+																																				_mdgriffith$stylish_elephants$Internal_Style$Descriptor,
+																																				'.space-evenly',
+																																				{
+																																					ctor: '::',
+																																					_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'justify-content', 'space-between'),
+																																					_1: {
+																																						ctor: '::',
+																																						_0: A2(
+																																							_mdgriffith$stylish_elephants$Internal_Style$Child,
+																																							'.spacer',
+																																							{
+																																								ctor: '::',
+																																								_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'display', 'none'),
+																																								_1: {ctor: '[]'}
+																																							}),
+																																						_1: {ctor: '[]'}
+																																					}
+																																				}),
+																																			_1: {ctor: '[]'}
+																																		}
 																																	}
 																																}
 																															}
@@ -16370,27 +12487,38 @@ var _mdgriffith$stylish_elephants$Internal_Style$rules = _mdgriffith$stylish_ele
 																			ctor: '::',
 																			_0: A2(
 																				_mdgriffith$stylish_elephants$Internal_Style$Child,
-																				'.se:first-child',
+																				'.width-fill-between',
 																				{
 																					ctor: '::',
-																					_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'margin-top', '0 !important'),
-																					_1: {ctor: '[]'}
+																					_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'align-self', 'stretch'),
+																					_1: {
+																						ctor: '::',
+																						_0: A2(
+																							_mdgriffith$stylish_elephants$Internal_Style$Descriptor,
+																							'.aligned-horizontally',
+																							{
+																								ctor: '::',
+																								_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'width', '100%'),
+																								_1: {ctor: '[]'}
+																							}),
+																						_1: {ctor: '[]'}
+																					}
 																				}),
 																			_1: {
 																				ctor: '::',
 																				_0: A2(
 																					_mdgriffith$stylish_elephants$Internal_Style$Child,
-																					'.spacer + .se',
+																					'.width-content',
 																					{
 																						ctor: '::',
-																						_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'margin-top', '0'),
+																						_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'align-self', 'left'),
 																						_1: {ctor: '[]'}
 																					}),
 																				_1: {
 																					ctor: '::',
 																					_0: A2(
 																						_mdgriffith$stylish_elephants$Internal_Style$Child,
-																						'.se.spacer',
+																						'.se:first-child',
 																						{
 																							ctor: '::',
 																							_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'margin-top', '0 !important'),
@@ -16400,109 +12528,87 @@ var _mdgriffith$stylish_elephants$Internal_Style$rules = _mdgriffith$stylish_ele
 																						ctor: '::',
 																						_0: A2(
 																							_mdgriffith$stylish_elephants$Internal_Style$Child,
-																							'.se.teleporting-spacer',
+																							'.spacer + .se',
 																							{
 																								ctor: '::',
-																								_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'margin-top', '0 !important'),
+																								_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'margin-top', '0'),
 																								_1: {ctor: '[]'}
 																							}),
 																						_1: {
 																							ctor: '::',
 																							_0: A2(
 																								_mdgriffith$stylish_elephants$Internal_Style$Child,
-																								'.stylesheet + .se',
+																								'.se.spacer',
 																								{
 																									ctor: '::',
-																									_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'margin-top', '0'),
+																									_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'margin-top', '0 !important'),
 																									_1: {ctor: '[]'}
 																								}),
 																							_1: {
 																								ctor: '::',
 																								_0: A2(
 																									_mdgriffith$stylish_elephants$Internal_Style$Child,
-																									'.nearby + .se',
+																									'.se.teleporting-spacer',
 																									{
 																										ctor: '::',
-																										_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'margin-top', '0'),
+																										_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'margin-top', '0 !important'),
 																										_1: {ctor: '[]'}
 																									}),
 																								_1: {
 																									ctor: '::',
 																									_0: A2(
 																										_mdgriffith$stylish_elephants$Internal_Style$Child,
-																										'alignTop:last-of-type.align-container-top',
+																										'.stylesheet + .se',
 																										{
 																											ctor: '::',
-																											_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-grow', '1'),
+																											_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'margin-top', '0'),
 																											_1: {ctor: '[]'}
 																										}),
 																									_1: {
 																										ctor: '::',
 																										_0: A2(
 																											_mdgriffith$stylish_elephants$Internal_Style$Child,
-																											'alignBottom:first-of-type.align-container-bottom',
+																											'.nearby + .se',
 																											{
 																												ctor: '::',
-																												_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-grow', '1'),
+																												_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'margin-top', '0'),
 																												_1: {ctor: '[]'}
 																											}),
 																										_1: {
 																											ctor: '::',
 																											_0: A2(
 																												_mdgriffith$stylish_elephants$Internal_Style$Child,
-																												'.teleporting-spacer',
+																												'alignTop:last-of-type.align-container-top',
 																												{
 																													ctor: '::',
-																													_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-grow', '0'),
+																													_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-grow', '1'),
 																													_1: {ctor: '[]'}
 																												}),
 																											_1: {
 																												ctor: '::',
 																												_0: A2(
 																													_mdgriffith$stylish_elephants$Internal_Style$Child,
-																													'centerY:first-of-type.align-container-center-y',
+																													'alignBottom:first-of-type.align-container-bottom',
 																													{
 																														ctor: '::',
 																														_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-grow', '1'),
-																														_1: {
-																															ctor: '::',
-																															_0: A2(
-																																_mdgriffith$stylish_elephants$Internal_Style$Child,
-																																'.self-center-y',
-																																{
-																																	ctor: '::',
-																																	_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'margin-bottom', '0 !important'),
-																																	_1: {ctor: '[]'}
-																																}),
-																															_1: {ctor: '[]'}
-																														}
+																														_1: {ctor: '[]'}
 																													}),
 																												_1: {
 																													ctor: '::',
 																													_0: A2(
 																														_mdgriffith$stylish_elephants$Internal_Style$Child,
-																														'centerY:last-of-type.align-container-center-y',
+																														'.teleporting-spacer',
 																														{
 																															ctor: '::',
-																															_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-grow', '1'),
-																															_1: {
-																																ctor: '::',
-																																_0: A2(
-																																	_mdgriffith$stylish_elephants$Internal_Style$Child,
-																																	'.self-center-y',
-																																	{
-																																		ctor: '::',
-																																		_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'margin-top', '0 !important'),
-																																		_1: {ctor: '[]'}
-																																	}),
-																																_1: {ctor: '[]'}
-																															}
+																															_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-grow', '0'),
+																															_1: {ctor: '[]'}
 																														}),
 																													_1: {
 																														ctor: '::',
 																														_0: A2(
 																															_mdgriffith$stylish_elephants$Internal_Style$Child,
-																															'centerY:only-of-type.align-container-center-y',
+																															'centerY:first-of-type.align-container-center-y',
 																															{
 																																ctor: '::',
 																																_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-grow', '1'),
@@ -16513,12 +12619,8 @@ var _mdgriffith$stylish_elephants$Internal_Style$rules = _mdgriffith$stylish_ele
 																																		'.self-center-y',
 																																		{
 																																			ctor: '::',
-																																			_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'margin-top', 'auto !important'),
-																																			_1: {
-																																				ctor: '::',
-																																				_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'margin-bottom', 'auto !important'),
-																																				_1: {ctor: '[]'}
-																																			}
+																																			_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'margin-bottom', '0 !important'),
+																																			_1: {ctor: '[]'}
 																																		}),
 																																	_1: {ctor: '[]'}
 																																}
@@ -16527,55 +12629,73 @@ var _mdgriffith$stylish_elephants$Internal_Style$rules = _mdgriffith$stylish_ele
 																															ctor: '::',
 																															_0: A2(
 																																_mdgriffith$stylish_elephants$Internal_Style$Child,
-																																'centerY:last-of-type.align-container-center-y ~ alignBottom',
+																																'centerY:last-of-type.align-container-center-y',
 																																{
 																																	ctor: '::',
-																																	_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-grow', '0'),
-																																	_1: {ctor: '[]'}
+																																	_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-grow', '1'),
+																																	_1: {
+																																		ctor: '::',
+																																		_0: A2(
+																																			_mdgriffith$stylish_elephants$Internal_Style$Child,
+																																			'.self-center-y',
+																																			{
+																																				ctor: '::',
+																																				_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'margin-top', '0 !important'),
+																																				_1: {ctor: '[]'}
+																																			}),
+																																		_1: {ctor: '[]'}
+																																	}
 																																}),
 																															_1: {
 																																ctor: '::',
 																																_0: A2(
 																																	_mdgriffith$stylish_elephants$Internal_Style$Child,
-																																	'alignBottom:first-of-type.align-container-bottom ~ centerY.align-container-center-y',
+																																	'centerY:only-of-type.align-container-center-y',
 																																	{
 																																		ctor: '::',
-																																		_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-grow', '0'),
-																																		_1: {ctor: '[]'}
+																																		_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-grow', '1'),
+																																		_1: {
+																																			ctor: '::',
+																																			_0: A2(
+																																				_mdgriffith$stylish_elephants$Internal_Style$Child,
+																																				'.self-center-y',
+																																				{
+																																					ctor: '::',
+																																					_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'margin-top', 'auto !important'),
+																																					_1: {
+																																						ctor: '::',
+																																						_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'margin-bottom', 'auto !important'),
+																																						_1: {ctor: '[]'}
+																																					}
+																																				}),
+																																			_1: {ctor: '[]'}
+																																		}
 																																	}),
 																																_1: {
 																																	ctor: '::',
 																																	_0: A2(
 																																		_mdgriffith$stylish_elephants$Internal_Style$Child,
-																																		'.se.self-center-y:first-child ~ .teleporting-spacer',
+																																		'centerY:last-of-type.align-container-center-y ~ alignBottom',
 																																		{
 																																			ctor: '::',
-																																			_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-grow', '1'),
-																																			_1: {
-																																				ctor: '::',
-																																				_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'order', '-1'),
-																																				_1: {ctor: '[]'}
-																																			}
+																																			_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-grow', '0'),
+																																			_1: {ctor: '[]'}
 																																		}),
 																																	_1: {
 																																		ctor: '::',
 																																		_0: A2(
 																																			_mdgriffith$stylish_elephants$Internal_Style$Child,
-																																			'.se.nearby + .se.self-center-y ~ .teleporting-spacer',
+																																			'alignBottom:first-of-type.align-container-bottom ~ centerY.align-container-center-y',
 																																			{
 																																				ctor: '::',
-																																				_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-grow', '1'),
-																																				_1: {
-																																					ctor: '::',
-																																					_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'order', '-1'),
-																																					_1: {ctor: '[]'}
-																																				}
+																																				_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-grow', '0'),
+																																				_1: {ctor: '[]'}
 																																			}),
 																																		_1: {
 																																			ctor: '::',
 																																			_0: A2(
 																																				_mdgriffith$stylish_elephants$Internal_Style$Child,
-																																				'.stylesheet + .se.self-center-y ~ .teleporting-spacer',
+																																				'.se.self-center-y:first-child ~ .teleporting-spacer',
 																																				{
 																																					ctor: '::',
 																																					_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-grow', '1'),
@@ -16587,136 +12707,166 @@ var _mdgriffith$stylish_elephants$Internal_Style$rules = _mdgriffith$stylish_ele
 																																				}),
 																																			_1: {
 																																				ctor: '::',
-																																				_0: _mdgriffith$stylish_elephants$Internal_Style$describeAlignment(
-																																					function (alignment) {
-																																						var _p23 = alignment;
-																																						switch (_p23.ctor) {
-																																							case 'Top':
-																																								return {
-																																									ctor: '_Tuple2',
-																																									_0: {
-																																										ctor: '::',
-																																										_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'justify-content', 'flex-start'),
-																																										_1: {ctor: '[]'}
-																																									},
-																																									_1: {
-																																										ctor: '::',
-																																										_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'margin-bottom', 'auto'),
-																																										_1: {ctor: '[]'}
-																																									}
-																																								};
-																																							case 'Bottom':
-																																								return {
-																																									ctor: '_Tuple2',
-																																									_0: {
-																																										ctor: '::',
-																																										_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'justify-content', 'flex-end'),
-																																										_1: {ctor: '[]'}
-																																									},
-																																									_1: {
-																																										ctor: '::',
-																																										_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'margin-top', 'auto'),
-																																										_1: {ctor: '[]'}
-																																									}
-																																								};
-																																							case 'Right':
-																																								return {
-																																									ctor: '_Tuple2',
-																																									_0: {
-																																										ctor: '::',
-																																										_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'align-items', 'flex-end'),
-																																										_1: {ctor: '[]'}
-																																									},
-																																									_1: {
-																																										ctor: '::',
-																																										_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'align-self', 'flex-end'),
-																																										_1: {ctor: '[]'}
-																																									}
-																																								};
-																																							case 'Left':
-																																								return {
-																																									ctor: '_Tuple2',
-																																									_0: {
-																																										ctor: '::',
-																																										_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'align-items', 'flex-start'),
-																																										_1: {ctor: '[]'}
-																																									},
-																																									_1: {
-																																										ctor: '::',
-																																										_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'align-self', 'flex-start'),
-																																										_1: {ctor: '[]'}
-																																									}
-																																								};
-																																							case 'CenterX':
-																																								return {
-																																									ctor: '_Tuple2',
-																																									_0: {
-																																										ctor: '::',
-																																										_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'align-items', 'center'),
-																																										_1: {ctor: '[]'}
-																																									},
-																																									_1: {
-																																										ctor: '::',
-																																										_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'align-self', 'center'),
-																																										_1: {ctor: '[]'}
-																																									}
-																																								};
-																																							default:
-																																								return {
-																																									ctor: '_Tuple2',
-																																									_0: {
-																																										ctor: '::',
-																																										_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'justify-content', 'center'),
-																																										_1: {ctor: '[]'}
-																																									},
-																																									_1: {ctor: '[]'}
-																																								};
+																																				_0: A2(
+																																					_mdgriffith$stylish_elephants$Internal_Style$Child,
+																																					'.se.nearby + .se.self-center-y ~ .teleporting-spacer',
+																																					{
+																																						ctor: '::',
+																																						_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-grow', '1'),
+																																						_1: {
+																																							ctor: '::',
+																																							_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'order', '-1'),
+																																							_1: {ctor: '[]'}
 																																						}
 																																					}),
 																																				_1: {
 																																					ctor: '::',
 																																					_0: A2(
 																																						_mdgriffith$stylish_elephants$Internal_Style$Child,
-																																						'.container',
+																																						'.stylesheet + .se.self-center-y ~ .teleporting-spacer',
 																																						{
 																																							ctor: '::',
-																																							_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-grow', '0'),
+																																							_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-grow', '1'),
 																																							_1: {
 																																								ctor: '::',
-																																								_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-basis', 'auto'),
-																																								_1: {
-																																									ctor: '::',
-																																									_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'width', '100%'),
-																																									_1: {
-																																										ctor: '::',
-																																										_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'align-self', 'stretch !important'),
-																																										_1: {ctor: '[]'}
-																																									}
-																																								}
+																																								_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'order', '-1'),
+																																								_1: {ctor: '[]'}
 																																							}
 																																						}),
 																																					_1: {
 																																						ctor: '::',
-																																						_0: A2(
-																																							_mdgriffith$stylish_elephants$Internal_Style$Descriptor,
-																																							'.space-evenly',
-																																							{
-																																								ctor: '::',
-																																								_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'justify-content', 'space-between'),
-																																								_1: {
-																																									ctor: '::',
-																																									_0: A2(
-																																										_mdgriffith$stylish_elephants$Internal_Style$Child,
-																																										'.spacer',
-																																										{
-																																											ctor: '::',
-																																											_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'display', 'none'),
+																																						_0: _mdgriffith$stylish_elephants$Internal_Style$describeAlignment(
+																																							function (alignment) {
+																																								var _p25 = alignment;
+																																								switch (_p25.ctor) {
+																																									case 'Top':
+																																										return {
+																																											ctor: '_Tuple2',
+																																											_0: {
+																																												ctor: '::',
+																																												_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'justify-content', 'flex-start'),
+																																												_1: {ctor: '[]'}
+																																											},
+																																											_1: {
+																																												ctor: '::',
+																																												_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'margin-bottom', 'auto'),
+																																												_1: {ctor: '[]'}
+																																											}
+																																										};
+																																									case 'Bottom':
+																																										return {
+																																											ctor: '_Tuple2',
+																																											_0: {
+																																												ctor: '::',
+																																												_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'justify-content', 'flex-end'),
+																																												_1: {ctor: '[]'}
+																																											},
+																																											_1: {
+																																												ctor: '::',
+																																												_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'margin-top', 'auto'),
+																																												_1: {ctor: '[]'}
+																																											}
+																																										};
+																																									case 'Right':
+																																										return {
+																																											ctor: '_Tuple2',
+																																											_0: {
+																																												ctor: '::',
+																																												_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'align-items', 'flex-end'),
+																																												_1: {ctor: '[]'}
+																																											},
+																																											_1: {
+																																												ctor: '::',
+																																												_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'align-self', 'flex-end'),
+																																												_1: {ctor: '[]'}
+																																											}
+																																										};
+																																									case 'Left':
+																																										return {
+																																											ctor: '_Tuple2',
+																																											_0: {
+																																												ctor: '::',
+																																												_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'align-items', 'flex-start'),
+																																												_1: {ctor: '[]'}
+																																											},
+																																											_1: {
+																																												ctor: '::',
+																																												_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'align-self', 'flex-start'),
+																																												_1: {ctor: '[]'}
+																																											}
+																																										};
+																																									case 'CenterX':
+																																										return {
+																																											ctor: '_Tuple2',
+																																											_0: {
+																																												ctor: '::',
+																																												_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'align-items', 'center'),
+																																												_1: {ctor: '[]'}
+																																											},
+																																											_1: {
+																																												ctor: '::',
+																																												_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'align-self', 'center'),
+																																												_1: {ctor: '[]'}
+																																											}
+																																										};
+																																									default:
+																																										return {
+																																											ctor: '_Tuple2',
+																																											_0: {
+																																												ctor: '::',
+																																												_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'justify-content', 'center'),
+																																												_1: {ctor: '[]'}
+																																											},
 																																											_1: {ctor: '[]'}
-																																										}),
-																																									_1: {ctor: '[]'}
+																																										};
 																																								}
 																																							}),
-																																						_1: {ctor: '[]'}
+																																						_1: {
+																																							ctor: '::',
+																																							_0: A2(
+																																								_mdgriffith$stylish_elephants$Internal_Style$Child,
+																																								'.container',
+																																								{
+																																									ctor: '::',
+																																									_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-grow', '0'),
+																																									_1: {
+																																										ctor: '::',
+																																										_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'flex-basis', 'auto'),
+																																										_1: {
+																																											ctor: '::',
+																																											_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'width', '100%'),
+																																											_1: {
+																																												ctor: '::',
+																																												_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'align-self', 'stretch !important'),
+																																												_1: {ctor: '[]'}
+																																											}
+																																										}
+																																									}
+																																								}),
+																																							_1: {
+																																								ctor: '::',
+																																								_0: A2(
+																																									_mdgriffith$stylish_elephants$Internal_Style$Descriptor,
+																																									'.space-evenly',
+																																									{
+																																										ctor: '::',
+																																										_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'justify-content', 'space-between'),
+																																										_1: {
+																																											ctor: '::',
+																																											_0: A2(
+																																												_mdgriffith$stylish_elephants$Internal_Style$Child,
+																																												'.spacer',
+																																												{
+																																													ctor: '::',
+																																													_0: A2(_mdgriffith$stylish_elephants$Internal_Style$Prop, 'display', 'none'),
+																																													_1: {ctor: '[]'}
+																																												}),
+																																											_1: {ctor: '[]'}
+																																										}
+																																									}),
+																																								_1: {ctor: '[]'}
+																																							}
+																																						}
 																																					}
 																																				}
 																																			}
@@ -16764,8 +12914,8 @@ var _mdgriffith$stylish_elephants$Internal_Style$rules = _mdgriffith$stylish_ele
 																	ctor: '::',
 																	_0: _mdgriffith$stylish_elephants$Internal_Style$gridAlignments(
 																		function (alignment) {
-																			var _p24 = alignment;
-																			switch (_p24.ctor) {
+																			var _p26 = alignment;
+																			switch (_p26.ctor) {
 																				case 'Top':
 																					return {
 																						ctor: '::',
@@ -16867,8 +13017,8 @@ var _mdgriffith$stylish_elephants$Internal_Style$rules = _mdgriffith$stylish_ele
 																				ctor: '::',
 																				_0: _mdgriffith$stylish_elephants$Internal_Style$describeAlignment(
 																					function (alignment) {
-																						var _p25 = alignment;
-																						switch (_p25.ctor) {
+																						var _p27 = alignment;
+																						switch (_p27.ctor) {
 																							case 'Top':
 																								return {
 																									ctor: '_Tuple2',
@@ -17047,8 +13197,8 @@ var _mdgriffith$stylish_elephants$Internal_Style$rules = _mdgriffith$stylish_ele
 																								ctor: '::',
 																								_0: _mdgriffith$stylish_elephants$Internal_Style$describeAlignment(
 																									function (alignment) {
-																										var _p26 = alignment;
-																										switch (_p26.ctor) {
+																										var _p28 = alignment;
+																										switch (_p28.ctor) {
 																											case 'Top':
 																												return {
 																													ctor: '_Tuple2',
@@ -18137,22 +14287,22 @@ var _mdgriffith$stylish_elephants$Internal_Model$alignYName = function (align) {
 	var _p40 = align;
 	switch (_p40.ctor) {
 		case 'Top':
-			return 'self-top';
+			return 'aligned-vertically self-top';
 		case 'Bottom':
-			return 'self-bottom';
+			return 'aligned-vertically self-bottom';
 		default:
-			return 'self-center-y';
+			return 'aligned-vertically self-center-y';
 	}
 };
 var _mdgriffith$stylish_elephants$Internal_Model$alignXName = function (align) {
 	var _p41 = align;
 	switch (_p41.ctor) {
 		case 'Left':
-			return 'self-left';
+			return 'aligned-horizontally self-left';
 		case 'Right':
-			return 'self-right';
+			return 'aligned-horizontally self-right';
 		default:
-			return 'self-center-x';
+			return 'aligned-horizontally self-center-x';
 	}
 };
 var _mdgriffith$stylish_elephants$Internal_Model$renderNode = F4(
@@ -19913,7 +16063,7 @@ var _mdgriffith$stylish_elephants$Internal_Model$toStyleSheetString = F2(
 							A2(
 								_elm_lang$core$Basics_ops['++'],
 								toGridLength(
-									_elm_lang$core$Tuple$first(_p133.spacing)),
+									_elm_lang$core$Tuple$second(_p133.spacing)),
 								';'));
 						var xSpacing = toGridLength(
 							_elm_lang$core$Tuple$first(_p133.spacing));
@@ -20935,7 +17085,7 @@ var _mdgriffith$stylish_elephants$Internal_Model$gatherAttributes = F2(
 									ctor: '_Tuple2',
 									_0: A2(
 										_elm_lang$core$Basics_ops['++'],
-										'width-fill-portion width-fill-',
+										'width-fill-between width-fill-',
 										_elm_lang$core$Basics$toString(_p175.portion)),
 									_1: A3(
 										_mdgriffith$stylish_elephants$Internal_Model$Single,
@@ -20955,7 +17105,7 @@ var _mdgriffith$stylish_elephants$Internal_Model$gatherAttributes = F2(
 									ctor: '_Tuple2',
 									_0: A2(
 										_elm_lang$core$Basics_ops['++'],
-										'.max-width-',
+										'max-width-',
 										_mdgriffith$stylish_elephants$Internal_Model$intToString(px)),
 									_1: A3(
 										_mdgriffith$stylish_elephants$Internal_Model$Single,
@@ -21138,7 +17288,7 @@ var _mdgriffith$stylish_elephants$Internal_Model$gatherAttributes = F2(
 									ctor: '_Tuple2',
 									_0: A2(
 										_elm_lang$core$Basics_ops['++'],
-										'height-fill-portion height-fill-',
+										'height-fill-between height-fill-',
 										_elm_lang$core$Basics$toString(_p180.portion)),
 									_1: A3(
 										_mdgriffith$stylish_elephants$Internal_Model$Single,
@@ -21873,12 +18023,8 @@ var _mdgriffith$stylish_elephants$Internal_Model$asElement = F4(
 							return _mdgriffith$stylish_elephants$Internal_Model$Unkeyed(
 								{
 									ctor: '::',
-									_0: _mdgriffith$stylish_elephants$Internal_Style$rulesElement,
-									_1: {
-										ctor: '::',
-										_0: A2(_mdgriffith$stylish_elephants$Internal_Model$toStyleSheet, _p234, styles),
-										_1: _p231._0
-									}
+									_0: A2(_mdgriffith$stylish_elephants$Internal_Model$toStyleSheet, _p234, styles),
+									_1: _p231._0
 								});
 						}
 					} else {
@@ -22041,12 +18187,20 @@ var _mdgriffith$stylish_elephants$Internal_Model$optionsToRecord = function (opt
 var _mdgriffith$stylish_elephants$Internal_Model$renderRoot = F3(
 	function (optionList, attributes, child) {
 		var options = _mdgriffith$stylish_elephants$Internal_Model$optionsToRecord(optionList);
+		var embedStyle = function () {
+			var _p244 = options.mode;
+			if (_p244.ctor === 'NoStaticStyleSheet') {
+				return _mdgriffith$stylish_elephants$Internal_Model$OnlyDynamic(options);
+			} else {
+				return _mdgriffith$stylish_elephants$Internal_Model$StaticRootAndDynamic(options);
+			}
+		}();
 		return A2(
 			_mdgriffith$stylish_elephants$Internal_Model$toHtml,
 			options,
 			A5(
 				_mdgriffith$stylish_elephants$Internal_Model$element,
-				_mdgriffith$stylish_elephants$Internal_Model$StaticRootAndDynamic(options),
+				embedStyle,
 				_mdgriffith$stylish_elephants$Internal_Model$asEl,
 				_elm_lang$core$Maybe$Nothing,
 				attributes,
@@ -23953,7 +20107,7 @@ var _mdgriffith$stylish_elephants$Element_Input$defaultTextBoxStyle = {
 		_0: _mdgriffith$stylish_elephants$Element_Border$rounded(3),
 		_1: {
 			ctor: '::',
-			_0: _mdgriffith$stylish_elephants$Element_Border$color(_elm_lang$core$Color$lightGrey),
+			_0: _mdgriffith$stylish_elephants$Element_Border$color(_elm_lang$core$Color$darkGrey),
 			_1: {
 				ctor: '::',
 				_0: _mdgriffith$stylish_elephants$Element_Background$color(_elm_lang$core$Color$white),
@@ -25869,7 +22023,7 @@ var _mdgriffith$stylish_elephants$Element_Input$select = F2(
 					_0: _mdgriffith$stylish_elephants$Element_Border$width(1),
 					_1: {
 						ctor: '::',
-						_0: _mdgriffith$stylish_elephants$Element_Border$color(_elm_lang$core$Color$lightGrey),
+						_0: _mdgriffith$stylish_elephants$Element_Border$color(_elm_lang$core$Color$darkGrey),
 						_1: {
 							ctor: '::',
 							_0: _mdgriffith$stylish_elephants$Element_Border$rounded(5),
@@ -25972,7 +22126,7 @@ var _mdgriffith$stylish_elephants$Element_Input$radio = _mdgriffith$stylish_elep
 var _mdgriffith$stylish_elephants$Element_Input$Row = {ctor: 'Row'};
 var _mdgriffith$stylish_elephants$Element_Input$radioRow = _mdgriffith$stylish_elephants$Element_Input$radioHelper(_mdgriffith$stylish_elephants$Element_Input$Row);
 
-var _lucamug$elm_style_framework$Framework_Configuration$conf = {
+var _puruzio$elm_style_framework$Framework_Configuration$conf = {
 	sizes: {size1: 3.0, size2: 2.5, size3: 2.0, size4: 1.5, size5: 1.25, size6: 1.0, size7: 0.75},
 	colors: {
 		grayLightest: A3(_elm_lang$core$Color$rgb, 247, 247, 247),
@@ -25993,7 +22147,7 @@ var _lucamug$elm_style_framework$Framework_Configuration$conf = {
 	}
 };
 
-var _lucamug$elm_style_framework$Framework_Color$color = function (cl) {
+var _puruzio$elm_style_framework$Framework_Color$color = function (cl) {
 	var _p0 = cl;
 	switch (_p0.ctor) {
 		case 'Transparent':
@@ -26003,56 +22157,56 @@ var _lucamug$elm_style_framework$Framework_Color$color = function (cl) {
 		case 'Black':
 			return A3(_elm_lang$core$Color$rgb, 0, 0, 0);
 		case 'GrayLightest':
-			return _lucamug$elm_style_framework$Framework_Configuration$conf.colors.grayLightest;
+			return _puruzio$elm_style_framework$Framework_Configuration$conf.colors.grayLightest;
 		case 'GrayLighter':
-			return _lucamug$elm_style_framework$Framework_Configuration$conf.colors.grayLighter;
+			return _puruzio$elm_style_framework$Framework_Configuration$conf.colors.grayLighter;
 		case 'GrayLight':
-			return _lucamug$elm_style_framework$Framework_Configuration$conf.colors.grayLight;
+			return _puruzio$elm_style_framework$Framework_Configuration$conf.colors.grayLight;
 		case 'GrayMediumLight':
-			return _lucamug$elm_style_framework$Framework_Configuration$conf.colors.grayMediumLight;
+			return _puruzio$elm_style_framework$Framework_Configuration$conf.colors.grayMediumLight;
 		case 'GrayMedium':
-			return _lucamug$elm_style_framework$Framework_Configuration$conf.colors.grayMedium;
+			return _puruzio$elm_style_framework$Framework_Configuration$conf.colors.grayMedium;
 		case 'Gray':
-			return _lucamug$elm_style_framework$Framework_Configuration$conf.colors.gray;
+			return _puruzio$elm_style_framework$Framework_Configuration$conf.colors.gray;
 		case 'GrayDark':
-			return _lucamug$elm_style_framework$Framework_Configuration$conf.colors.grayDark;
+			return _puruzio$elm_style_framework$Framework_Configuration$conf.colors.grayDark;
 		case 'GrayDarker':
-			return _lucamug$elm_style_framework$Framework_Configuration$conf.colors.grayDarker;
+			return _puruzio$elm_style_framework$Framework_Configuration$conf.colors.grayDarker;
 		case 'GrayDarkest':
-			return _lucamug$elm_style_framework$Framework_Configuration$conf.colors.grayDarkest;
+			return _puruzio$elm_style_framework$Framework_Configuration$conf.colors.grayDarkest;
 		case 'Muted':
-			return _lucamug$elm_style_framework$Framework_Configuration$conf.colors.muted;
+			return _puruzio$elm_style_framework$Framework_Configuration$conf.colors.muted;
 		case 'Primary':
-			return _lucamug$elm_style_framework$Framework_Configuration$conf.colors.primary;
+			return _puruzio$elm_style_framework$Framework_Configuration$conf.colors.primary;
 		case 'Success':
-			return _lucamug$elm_style_framework$Framework_Configuration$conf.colors.success;
+			return _puruzio$elm_style_framework$Framework_Configuration$conf.colors.success;
 		case 'Info':
-			return _lucamug$elm_style_framework$Framework_Configuration$conf.colors.info;
+			return _puruzio$elm_style_framework$Framework_Configuration$conf.colors.info;
 		case 'Warning':
-			return _lucamug$elm_style_framework$Framework_Configuration$conf.colors.warning;
+			return _puruzio$elm_style_framework$Framework_Configuration$conf.colors.warning;
 		default:
-			return _lucamug$elm_style_framework$Framework_Configuration$conf.colors.danger;
+			return _puruzio$elm_style_framework$Framework_Configuration$conf.colors.danger;
 	}
 };
-var _lucamug$elm_style_framework$Framework_Color$toRadix = function (n) {
+var _puruzio$elm_style_framework$Framework_Color$toRadix = function (n) {
 	var getChr = function (c) {
 		return (_elm_lang$core$Native_Utils.cmp(c, 10) < 0) ? _elm_lang$core$Basics$toString(c) : _elm_lang$core$String$fromChar(
 			_elm_lang$core$Char$fromCode(87 + c));
 	};
 	return (_elm_lang$core$Native_Utils.cmp(n, 16) < 0) ? getChr(n) : A2(
 		_elm_lang$core$Basics_ops['++'],
-		_lucamug$elm_style_framework$Framework_Color$toRadix((n / 16) | 0),
+		_puruzio$elm_style_framework$Framework_Color$toRadix((n / 16) | 0),
 		getChr(
 			A2(_elm_lang$core$Basics_ops['%'], n, 16)));
 };
-var _lucamug$elm_style_framework$Framework_Color$toHex = function (_p1) {
+var _puruzio$elm_style_framework$Framework_Color$toHex = function (_p1) {
 	return A3(
 		_elm_lang$core$String$padLeft,
 		2,
 		_elm_lang$core$Native_Utils.chr('0'),
-		_lucamug$elm_style_framework$Framework_Color$toRadix(_p1));
+		_puruzio$elm_style_framework$Framework_Color$toRadix(_p1));
 };
-var _lucamug$elm_style_framework$Framework_Color$colorToHex = function (cl) {
+var _puruzio$elm_style_framework$Framework_Color$colorToHex = function (cl) {
 	var _p2 = _elm_lang$core$Color$toRgb(cl);
 	var red = _p2.red;
 	var green = _p2.green;
@@ -26069,7 +22223,7 @@ var _lucamug$elm_style_framework$Framework_Color$colorToHex = function (cl) {
 			'#',
 			A2(
 				_elm_lang$core$List$map,
-				_lucamug$elm_style_framework$Framework_Color$toHex,
+				_puruzio$elm_style_framework$Framework_Color$toHex,
 				{
 					ctor: '::',
 					_0: red,
@@ -26084,13 +22238,13 @@ var _lucamug$elm_style_framework$Framework_Color$colorToHex = function (cl) {
 					}
 				})));
 };
-var _lucamug$elm_style_framework$Framework_Color$norm57 = function (value) {
+var _puruzio$elm_style_framework$Framework_Color$norm57 = function (value) {
 	return _elm_lang$core$Basics$round(value * 57);
 };
-var _lucamug$elm_style_framework$Framework_Color$norm100 = function (value) {
+var _puruzio$elm_style_framework$Framework_Color$norm100 = function (value) {
 	return _elm_lang$core$Basics$round(value * 100);
 };
-var _lucamug$elm_style_framework$Framework_Color$colorToHsl = function (cl) {
+var _puruzio$elm_style_framework$Framework_Color$colorToHsl = function (cl) {
 	var _p3 = _elm_lang$core$Color$toHsl(cl);
 	var hue = _p3.hue;
 	var saturation = _p3.saturation;
@@ -26113,26 +22267,26 @@ var _lucamug$elm_style_framework$Framework_Color$colorToHsl = function (cl) {
 				_elm_lang$core$Basics$toString,
 				{
 					ctor: '::',
-					_0: _lucamug$elm_style_framework$Framework_Color$norm57(hue2),
+					_0: _puruzio$elm_style_framework$Framework_Color$norm57(hue2),
 					_1: {
 						ctor: '::',
-						_0: _lucamug$elm_style_framework$Framework_Color$norm100(saturation),
+						_0: _puruzio$elm_style_framework$Framework_Color$norm100(saturation),
 						_1: {
 							ctor: '::',
-							_0: _lucamug$elm_style_framework$Framework_Color$norm100(lightness),
+							_0: _puruzio$elm_style_framework$Framework_Color$norm100(lightness),
 							_1: {
 								ctor: '::',
-								_0: _lucamug$elm_style_framework$Framework_Color$norm100(alpha),
+								_0: _puruzio$elm_style_framework$Framework_Color$norm100(alpha),
 								_1: {ctor: '[]'}
 							}
 						}
 					}
 				})));
 };
-var _lucamug$elm_style_framework$Framework_Color$norm = function (value) {
+var _puruzio$elm_style_framework$Framework_Color$norm = function (value) {
 	return _elm_lang$core$Basics$round(value * 255);
 };
-var _lucamug$elm_style_framework$Framework_Color$saturate = F2(
+var _puruzio$elm_style_framework$Framework_Color$saturate = F2(
 	function (quantity, cl) {
 		var _p4 = _elm_lang$core$Color$toHsl(cl);
 		var hue = _p4.hue;
@@ -26140,7 +22294,7 @@ var _lucamug$elm_style_framework$Framework_Color$saturate = F2(
 		var lightness = _p4.lightness;
 		return A3(_elm_lang$core$Color$hsl, hue, saturation * quantity, lightness);
 	});
-var _lucamug$elm_style_framework$Framework_Color$lighten = F2(
+var _puruzio$elm_style_framework$Framework_Color$lighten = F2(
 	function (quantity, cl) {
 		var _p5 = _elm_lang$core$Color$toHsl(cl);
 		var hue = _p5.hue;
@@ -26148,32 +22302,32 @@ var _lucamug$elm_style_framework$Framework_Color$lighten = F2(
 		var lightness = _p5.lightness;
 		return A3(_elm_lang$core$Color$hsl, hue, saturation, lightness * quantity);
 	});
-var _lucamug$elm_style_framework$Framework_Color$Danger = {ctor: 'Danger'};
-var _lucamug$elm_style_framework$Framework_Color$Warning = {ctor: 'Warning'};
-var _lucamug$elm_style_framework$Framework_Color$Info = {ctor: 'Info'};
-var _lucamug$elm_style_framework$Framework_Color$Success = {ctor: 'Success'};
-var _lucamug$elm_style_framework$Framework_Color$Primary = {ctor: 'Primary'};
-var _lucamug$elm_style_framework$Framework_Color$Muted = {ctor: 'Muted'};
-var _lucamug$elm_style_framework$Framework_Color$GrayDarkest = {ctor: 'GrayDarkest'};
-var _lucamug$elm_style_framework$Framework_Color$GrayDarker = {ctor: 'GrayDarker'};
-var _lucamug$elm_style_framework$Framework_Color$GrayDark = {ctor: 'GrayDark'};
-var _lucamug$elm_style_framework$Framework_Color$Gray = {ctor: 'Gray'};
-var _lucamug$elm_style_framework$Framework_Color$GrayMedium = {ctor: 'GrayMedium'};
-var _lucamug$elm_style_framework$Framework_Color$GrayMediumLight = {ctor: 'GrayMediumLight'};
-var _lucamug$elm_style_framework$Framework_Color$GrayLight = {ctor: 'GrayLight'};
-var _lucamug$elm_style_framework$Framework_Color$GrayLighter = {ctor: 'GrayLighter'};
-var _lucamug$elm_style_framework$Framework_Color$GrayLightest = {ctor: 'GrayLightest'};
-var _lucamug$elm_style_framework$Framework_Color$Black = {ctor: 'Black'};
-var _lucamug$elm_style_framework$Framework_Color$White = {ctor: 'White'};
-var _lucamug$elm_style_framework$Framework_Color$maximumContrast = function (c) {
+var _puruzio$elm_style_framework$Framework_Color$Danger = {ctor: 'Danger'};
+var _puruzio$elm_style_framework$Framework_Color$Warning = {ctor: 'Warning'};
+var _puruzio$elm_style_framework$Framework_Color$Info = {ctor: 'Info'};
+var _puruzio$elm_style_framework$Framework_Color$Success = {ctor: 'Success'};
+var _puruzio$elm_style_framework$Framework_Color$Primary = {ctor: 'Primary'};
+var _puruzio$elm_style_framework$Framework_Color$Muted = {ctor: 'Muted'};
+var _puruzio$elm_style_framework$Framework_Color$GrayDarkest = {ctor: 'GrayDarkest'};
+var _puruzio$elm_style_framework$Framework_Color$GrayDarker = {ctor: 'GrayDarker'};
+var _puruzio$elm_style_framework$Framework_Color$GrayDark = {ctor: 'GrayDark'};
+var _puruzio$elm_style_framework$Framework_Color$Gray = {ctor: 'Gray'};
+var _puruzio$elm_style_framework$Framework_Color$GrayMedium = {ctor: 'GrayMedium'};
+var _puruzio$elm_style_framework$Framework_Color$GrayMediumLight = {ctor: 'GrayMediumLight'};
+var _puruzio$elm_style_framework$Framework_Color$GrayLight = {ctor: 'GrayLight'};
+var _puruzio$elm_style_framework$Framework_Color$GrayLighter = {ctor: 'GrayLighter'};
+var _puruzio$elm_style_framework$Framework_Color$GrayLightest = {ctor: 'GrayLightest'};
+var _puruzio$elm_style_framework$Framework_Color$Black = {ctor: 'Black'};
+var _puruzio$elm_style_framework$Framework_Color$White = {ctor: 'White'};
+var _puruzio$elm_style_framework$Framework_Color$maximumContrast = function (c) {
 	var _p6 = _elm_lang$core$Color$toHsl(c);
 	var hue = _p6.hue;
 	var saturation = _p6.saturation;
 	var lightness = _p6.lightness;
-	return (_elm_lang$core$Native_Utils.cmp(lightness, 0.7) < 0) ? _lucamug$elm_style_framework$Framework_Color$color(_lucamug$elm_style_framework$Framework_Color$White) : _lucamug$elm_style_framework$Framework_Color$color(_lucamug$elm_style_framework$Framework_Color$Black);
+	return (_elm_lang$core$Native_Utils.cmp(lightness, 0.7) < 0) ? _puruzio$elm_style_framework$Framework_Color$color(_puruzio$elm_style_framework$Framework_Color$White) : _puruzio$elm_style_framework$Framework_Color$color(_puruzio$elm_style_framework$Framework_Color$Black);
 };
-var _lucamug$elm_style_framework$Framework_Color$usageWrapper = function (colorType) {
-	var cl = _lucamug$elm_style_framework$Framework_Color$color(colorType);
+var _puruzio$elm_style_framework$Framework_Color$usageWrapper = function (colorType) {
+	var cl = _puruzio$elm_style_framework$Framework_Color$color(colorType);
 	return A2(
 		_mdgriffith$stylish_elephants$Element$el,
 		{
@@ -26192,7 +22346,7 @@ var _lucamug$elm_style_framework$Framework_Color$usageWrapper = function (colorT
 						_1: {
 							ctor: '::',
 							_0: _mdgriffith$stylish_elephants$Element_Font$color(
-								_lucamug$elm_style_framework$Framework_Color$maximumContrast(cl)),
+								_puruzio$elm_style_framework$Framework_Color$maximumContrast(cl)),
 							_1: {ctor: '[]'}
 						}
 					}
@@ -26205,22 +22359,22 @@ var _lucamug$elm_style_framework$Framework_Color$usageWrapper = function (colorT
 			{
 				ctor: '::',
 				_0: _mdgriffith$stylish_elephants$Element$text(
-					_lucamug$elm_style_framework$Framework_Color$colorToHex(cl)),
+					_puruzio$elm_style_framework$Framework_Color$colorToHex(cl)),
 				_1: {
 					ctor: '::',
 					_0: _mdgriffith$stylish_elephants$Element$text(
-						_lucamug$elm_style_framework$Framework_Color$colorToHsl(cl)),
+						_puruzio$elm_style_framework$Framework_Color$colorToHsl(cl)),
 					_1: {ctor: '[]'}
 				}
 			}));
 };
-var _lucamug$elm_style_framework$Framework_Color$Transparent = {ctor: 'Transparent'};
-var _lucamug$elm_style_framework$Framework_Color$introspection = {
+var _puruzio$elm_style_framework$Framework_Color$Transparent = {ctor: 'Transparent'};
+var _puruzio$elm_style_framework$Framework_Color$introspection = {
 	name: 'Colors',
 	signature: 'color : Color -> Color.Color',
 	description: '',
 	usage: 'color ColorPrimary',
-	usageResult: _lucamug$elm_style_framework$Framework_Color$usageWrapper(_lucamug$elm_style_framework$Framework_Color$Primary),
+	usageResult: _puruzio$elm_style_framework$Framework_Color$usageWrapper(_puruzio$elm_style_framework$Framework_Color$Primary),
 	boxed: false,
 	variations: {
 		ctor: '::',
@@ -26231,63 +22385,63 @@ var _lucamug$elm_style_framework$Framework_Color$introspection = {
 				ctor: '::',
 				_0: {
 					ctor: '_Tuple2',
-					_0: _lucamug$elm_style_framework$Framework_Color$usageWrapper(_lucamug$elm_style_framework$Framework_Color$GrayLightest),
+					_0: _puruzio$elm_style_framework$Framework_Color$usageWrapper(_puruzio$elm_style_framework$Framework_Color$GrayLightest),
 					_1: 'color GrayLightest'
 				},
 				_1: {
 					ctor: '::',
 					_0: {
 						ctor: '_Tuple2',
-						_0: _lucamug$elm_style_framework$Framework_Color$usageWrapper(_lucamug$elm_style_framework$Framework_Color$GrayLighter),
+						_0: _puruzio$elm_style_framework$Framework_Color$usageWrapper(_puruzio$elm_style_framework$Framework_Color$GrayLighter),
 						_1: 'color GrayLighter'
 					},
 					_1: {
 						ctor: '::',
 						_0: {
 							ctor: '_Tuple2',
-							_0: _lucamug$elm_style_framework$Framework_Color$usageWrapper(_lucamug$elm_style_framework$Framework_Color$GrayLight),
+							_0: _puruzio$elm_style_framework$Framework_Color$usageWrapper(_puruzio$elm_style_framework$Framework_Color$GrayLight),
 							_1: 'color GrayLight'
 						},
 						_1: {
 							ctor: '::',
 							_0: {
 								ctor: '_Tuple2',
-								_0: _lucamug$elm_style_framework$Framework_Color$usageWrapper(_lucamug$elm_style_framework$Framework_Color$GrayMediumLight),
+								_0: _puruzio$elm_style_framework$Framework_Color$usageWrapper(_puruzio$elm_style_framework$Framework_Color$GrayMediumLight),
 								_1: 'color GrayMediumLight'
 							},
 							_1: {
 								ctor: '::',
 								_0: {
 									ctor: '_Tuple2',
-									_0: _lucamug$elm_style_framework$Framework_Color$usageWrapper(_lucamug$elm_style_framework$Framework_Color$GrayMedium),
+									_0: _puruzio$elm_style_framework$Framework_Color$usageWrapper(_puruzio$elm_style_framework$Framework_Color$GrayMedium),
 									_1: 'color GrayMedium'
 								},
 								_1: {
 									ctor: '::',
 									_0: {
 										ctor: '_Tuple2',
-										_0: _lucamug$elm_style_framework$Framework_Color$usageWrapper(_lucamug$elm_style_framework$Framework_Color$Gray),
+										_0: _puruzio$elm_style_framework$Framework_Color$usageWrapper(_puruzio$elm_style_framework$Framework_Color$Gray),
 										_1: 'color Gray'
 									},
 									_1: {
 										ctor: '::',
 										_0: {
 											ctor: '_Tuple2',
-											_0: _lucamug$elm_style_framework$Framework_Color$usageWrapper(_lucamug$elm_style_framework$Framework_Color$GrayDark),
+											_0: _puruzio$elm_style_framework$Framework_Color$usageWrapper(_puruzio$elm_style_framework$Framework_Color$GrayDark),
 											_1: 'color GrayDark'
 										},
 										_1: {
 											ctor: '::',
 											_0: {
 												ctor: '_Tuple2',
-												_0: _lucamug$elm_style_framework$Framework_Color$usageWrapper(_lucamug$elm_style_framework$Framework_Color$GrayDarker),
+												_0: _puruzio$elm_style_framework$Framework_Color$usageWrapper(_puruzio$elm_style_framework$Framework_Color$GrayDarker),
 												_1: 'color GrayDarker'
 											},
 											_1: {
 												ctor: '::',
 												_0: {
 													ctor: '_Tuple2',
-													_0: _lucamug$elm_style_framework$Framework_Color$usageWrapper(_lucamug$elm_style_framework$Framework_Color$GrayDarkest),
+													_0: _puruzio$elm_style_framework$Framework_Color$usageWrapper(_puruzio$elm_style_framework$Framework_Color$GrayDarkest),
 													_1: 'color GrayDarkest'
 												},
 												_1: {ctor: '[]'}
@@ -26310,42 +22464,42 @@ var _lucamug$elm_style_framework$Framework_Color$introspection = {
 					ctor: '::',
 					_0: {
 						ctor: '_Tuple2',
-						_0: _lucamug$elm_style_framework$Framework_Color$usageWrapper(_lucamug$elm_style_framework$Framework_Color$Muted),
+						_0: _puruzio$elm_style_framework$Framework_Color$usageWrapper(_puruzio$elm_style_framework$Framework_Color$Muted),
 						_1: 'color Muted'
 					},
 					_1: {
 						ctor: '::',
 						_0: {
 							ctor: '_Tuple2',
-							_0: _lucamug$elm_style_framework$Framework_Color$usageWrapper(_lucamug$elm_style_framework$Framework_Color$Primary),
+							_0: _puruzio$elm_style_framework$Framework_Color$usageWrapper(_puruzio$elm_style_framework$Framework_Color$Primary),
 							_1: 'color Primary'
 						},
 						_1: {
 							ctor: '::',
 							_0: {
 								ctor: '_Tuple2',
-								_0: _lucamug$elm_style_framework$Framework_Color$usageWrapper(_lucamug$elm_style_framework$Framework_Color$Success),
+								_0: _puruzio$elm_style_framework$Framework_Color$usageWrapper(_puruzio$elm_style_framework$Framework_Color$Success),
 								_1: 'color Success'
 							},
 							_1: {
 								ctor: '::',
 								_0: {
 									ctor: '_Tuple2',
-									_0: _lucamug$elm_style_framework$Framework_Color$usageWrapper(_lucamug$elm_style_framework$Framework_Color$Info),
+									_0: _puruzio$elm_style_framework$Framework_Color$usageWrapper(_puruzio$elm_style_framework$Framework_Color$Info),
 									_1: 'color Info'
 								},
 								_1: {
 									ctor: '::',
 									_0: {
 										ctor: '_Tuple2',
-										_0: _lucamug$elm_style_framework$Framework_Color$usageWrapper(_lucamug$elm_style_framework$Framework_Color$Warning),
+										_0: _puruzio$elm_style_framework$Framework_Color$usageWrapper(_puruzio$elm_style_framework$Framework_Color$Warning),
 										_1: 'color Warning'
 									},
 									_1: {
 										ctor: '::',
 										_0: {
 											ctor: '_Tuple2',
-											_0: _lucamug$elm_style_framework$Framework_Color$usageWrapper(_lucamug$elm_style_framework$Framework_Color$Danger),
+											_0: _puruzio$elm_style_framework$Framework_Color$usageWrapper(_puruzio$elm_style_framework$Framework_Color$Danger),
 											_1: 'color Danger'
 										},
 										_1: {ctor: '[]'}
@@ -26365,21 +22519,21 @@ var _lucamug$elm_style_framework$Framework_Color$introspection = {
 						ctor: '::',
 						_0: {
 							ctor: '_Tuple2',
-							_0: _lucamug$elm_style_framework$Framework_Color$usageWrapper(_lucamug$elm_style_framework$Framework_Color$Black),
+							_0: _puruzio$elm_style_framework$Framework_Color$usageWrapper(_puruzio$elm_style_framework$Framework_Color$Black),
 							_1: 'color Black'
 						},
 						_1: {
 							ctor: '::',
 							_0: {
 								ctor: '_Tuple2',
-								_0: _lucamug$elm_style_framework$Framework_Color$usageWrapper(_lucamug$elm_style_framework$Framework_Color$White),
+								_0: _puruzio$elm_style_framework$Framework_Color$usageWrapper(_puruzio$elm_style_framework$Framework_Color$White),
 								_1: 'color White'
 							},
 							_1: {
 								ctor: '::',
 								_0: {
 									ctor: '_Tuple2',
-									_0: _lucamug$elm_style_framework$Framework_Color$usageWrapper(_lucamug$elm_style_framework$Framework_Color$Transparent),
+									_0: _puruzio$elm_style_framework$Framework_Color$usageWrapper(_puruzio$elm_style_framework$Framework_Color$Transparent),
 									_1: 'color Transparent'
 								},
 								_1: {ctor: '[]'}
@@ -26393,24 +22547,24 @@ var _lucamug$elm_style_framework$Framework_Color$introspection = {
 	}
 };
 
-var _lucamug$elm_style_framework$Framework_Modifiers$Disabled = {ctor: 'Disabled'};
-var _lucamug$elm_style_framework$Framework_Modifiers$Waiting = {ctor: 'Waiting'};
-var _lucamug$elm_style_framework$Framework_Modifiers$Loading = {ctor: 'Loading'};
-var _lucamug$elm_style_framework$Framework_Modifiers$Outlined = {ctor: 'Outlined'};
-var _lucamug$elm_style_framework$Framework_Modifiers$Large = {ctor: 'Large'};
-var _lucamug$elm_style_framework$Framework_Modifiers$Medium = {ctor: 'Medium'};
-var _lucamug$elm_style_framework$Framework_Modifiers$Small = {ctor: 'Small'};
-var _lucamug$elm_style_framework$Framework_Modifiers$Danger = {ctor: 'Danger'};
-var _lucamug$elm_style_framework$Framework_Modifiers$Warning = {ctor: 'Warning'};
-var _lucamug$elm_style_framework$Framework_Modifiers$Info = {ctor: 'Info'};
-var _lucamug$elm_style_framework$Framework_Modifiers$Success = {ctor: 'Success'};
-var _lucamug$elm_style_framework$Framework_Modifiers$Primary = {ctor: 'Primary'};
-var _lucamug$elm_style_framework$Framework_Modifiers$Muted = {ctor: 'Muted'};
+var _puruzio$elm_style_framework$Framework_Modifiers$Disabled = {ctor: 'Disabled'};
+var _puruzio$elm_style_framework$Framework_Modifiers$Waiting = {ctor: 'Waiting'};
+var _puruzio$elm_style_framework$Framework_Modifiers$Loading = {ctor: 'Loading'};
+var _puruzio$elm_style_framework$Framework_Modifiers$Outlined = {ctor: 'Outlined'};
+var _puruzio$elm_style_framework$Framework_Modifiers$Large = {ctor: 'Large'};
+var _puruzio$elm_style_framework$Framework_Modifiers$Medium = {ctor: 'Medium'};
+var _puruzio$elm_style_framework$Framework_Modifiers$Small = {ctor: 'Small'};
+var _puruzio$elm_style_framework$Framework_Modifiers$Danger = {ctor: 'Danger'};
+var _puruzio$elm_style_framework$Framework_Modifiers$Warning = {ctor: 'Warning'};
+var _puruzio$elm_style_framework$Framework_Modifiers$Info = {ctor: 'Info'};
+var _puruzio$elm_style_framework$Framework_Modifiers$Success = {ctor: 'Success'};
+var _puruzio$elm_style_framework$Framework_Modifiers$Primary = {ctor: 'Primary'};
+var _puruzio$elm_style_framework$Framework_Modifiers$Muted = {ctor: 'Muted'};
 
-var _lucamug$elm_style_framework$Framework_Spinner$spinnerRotationHtml = F2(
+var _puruzio$elm_style_framework$Framework_Spinner$spinnerRotationHtml = F2(
 	function (size, color) {
 		var speed = '0.6s';
-		var colorString = _lucamug$elm_style_framework$Framework_Color$colorToHex(color);
+		var colorString = _puruzio$elm_style_framework$Framework_Color$colorToHex(color);
 		var idElement = A2(
 			_elm_lang$core$Basics_ops['++'],
 			'id',
@@ -26652,11 +22806,11 @@ var _lucamug$elm_style_framework$Framework_Spinner$spinnerRotationHtml = F2(
 				}
 			});
 	});
-var _lucamug$elm_style_framework$Framework_Spinner$spinnerThreeCirclesHtml = F2(
+var _puruzio$elm_style_framework$Framework_Spinner$spinnerThreeCirclesHtml = F2(
 	function (size, color) {
 		var size = 32;
 		var speed = '0.6s';
-		var colorString = _lucamug$elm_style_framework$Framework_Color$colorToHex(color);
+		var colorString = _puruzio$elm_style_framework$Framework_Color$colorToHex(color);
 		var idElement = A2(
 			_elm_lang$core$Basics_ops['++'],
 			'id',
@@ -26910,26 +23064,26 @@ var _lucamug$elm_style_framework$Framework_Spinner$spinnerThreeCirclesHtml = F2(
 				_1: {ctor: '[]'}
 			});
 	});
-var _lucamug$elm_style_framework$Framework_Spinner$spinner = F3(
+var _puruzio$elm_style_framework$Framework_Spinner$spinner = F3(
 	function (spinner, size, color) {
 		return _mdgriffith$stylish_elephants$Element$html(
 			function () {
 				var _p0 = spinner;
 				if (_p0.ctor === 'ThreeCircles') {
-					return A2(_lucamug$elm_style_framework$Framework_Spinner$spinnerThreeCirclesHtml, size, color);
+					return A2(_puruzio$elm_style_framework$Framework_Spinner$spinnerThreeCirclesHtml, size, color);
 				} else {
-					return A2(_lucamug$elm_style_framework$Framework_Spinner$spinnerRotationHtml, size, color);
+					return A2(_puruzio$elm_style_framework$Framework_Spinner$spinnerRotationHtml, size, color);
 				}
 			}());
 	});
-var _lucamug$elm_style_framework$Framework_Spinner$Rotation = {ctor: 'Rotation'};
-var _lucamug$elm_style_framework$Framework_Spinner$ThreeCircles = {ctor: 'ThreeCircles'};
-var _lucamug$elm_style_framework$Framework_Spinner$introspection = {
+var _puruzio$elm_style_framework$Framework_Spinner$Rotation = {ctor: 'Rotation'};
+var _puruzio$elm_style_framework$Framework_Spinner$ThreeCircles = {ctor: 'ThreeCircles'};
+var _puruzio$elm_style_framework$Framework_Spinner$introspection = {
 	name: 'Spinners',
 	signature: 'spinner : Spinner -> Int -> Color.Color -> Element.Element msg',
 	description: 'List of SVG spinners',
 	usage: 'spinner ThreeCircles 20 Color.black',
-	usageResult: A3(_lucamug$elm_style_framework$Framework_Spinner$spinner, _lucamug$elm_style_framework$Framework_Spinner$ThreeCircles, 20, _elm_lang$core$Color$black),
+	usageResult: A3(_puruzio$elm_style_framework$Framework_Spinner$spinner, _puruzio$elm_style_framework$Framework_Spinner$ThreeCircles, 20, _elm_lang$core$Color$black),
 	boxed: true,
 	variations: {
 		ctor: '::',
@@ -26940,14 +23094,14 @@ var _lucamug$elm_style_framework$Framework_Spinner$introspection = {
 				ctor: '::',
 				_0: {
 					ctor: '_Tuple2',
-					_0: A3(_lucamug$elm_style_framework$Framework_Spinner$spinner, _lucamug$elm_style_framework$Framework_Spinner$ThreeCircles, 32, _elm_lang$core$Color$black),
+					_0: A3(_puruzio$elm_style_framework$Framework_Spinner$spinner, _puruzio$elm_style_framework$Framework_Spinner$ThreeCircles, 32, _elm_lang$core$Color$black),
 					_1: 'spinner ThreeCircles 32 Color.black'
 				},
 				_1: {
 					ctor: '::',
 					_0: {
 						ctor: '_Tuple2',
-						_0: A3(_lucamug$elm_style_framework$Framework_Spinner$spinner, _lucamug$elm_style_framework$Framework_Spinner$Rotation, 32, _elm_lang$core$Color$black),
+						_0: A3(_puruzio$elm_style_framework$Framework_Spinner$spinner, _puruzio$elm_style_framework$Framework_Spinner$Rotation, 32, _elm_lang$core$Color$black),
 						_1: 'spinner Rotation 32 Color.black'
 					},
 					_1: {ctor: '[]'}
@@ -26958,9 +23112,9 @@ var _lucamug$elm_style_framework$Framework_Spinner$introspection = {
 	}
 };
 
-var _lucamug$elm_style_framework$Framework_Button$colorBorderDefault = _lucamug$elm_style_framework$Framework_Color$GrayLighter;
-var _lucamug$elm_style_framework$Framework_Button$colorDefault = _lucamug$elm_style_framework$Framework_Color$White;
-var _lucamug$elm_style_framework$Framework_Button$toButtonPadding = function (size) {
+var _puruzio$elm_style_framework$Framework_Button$colorBorderDefault = _puruzio$elm_style_framework$Framework_Color$GrayLighter;
+var _puruzio$elm_style_framework$Framework_Button$colorDefault = _puruzio$elm_style_framework$Framework_Color$White;
+var _puruzio$elm_style_framework$Framework_Button$toButtonPadding = function (size) {
 	var _p0 = size;
 	switch (_p0.ctor) {
 		case 'SizeSmall':
@@ -26973,7 +23127,7 @@ var _lucamug$elm_style_framework$Framework_Button$toButtonPadding = function (si
 			return {ctor: '_Tuple2', _0: 18, _1: 7};
 	}
 };
-var _lucamug$elm_style_framework$Framework_Button$toPx = function (size) {
+var _puruzio$elm_style_framework$Framework_Button$toPx = function (size) {
 	var _p1 = size;
 	switch (_p1.ctor) {
 		case 'SizeSmall':
@@ -26986,86 +23140,86 @@ var _lucamug$elm_style_framework$Framework_Button$toPx = function (size) {
 			return 24;
 	}
 };
-var _lucamug$elm_style_framework$Framework_Button$Conf = F3(
+var _puruzio$elm_style_framework$Framework_Button$Conf = F3(
 	function (a, b, c) {
 		return {color: a, size: b, state: c};
 	});
-var _lucamug$elm_style_framework$Framework_Button$SizeLarge = {ctor: 'SizeLarge'};
-var _lucamug$elm_style_framework$Framework_Button$SizeMedium = {ctor: 'SizeMedium'};
-var _lucamug$elm_style_framework$Framework_Button$SizeDefault = {ctor: 'SizeDefault'};
-var _lucamug$elm_style_framework$Framework_Button$SizeSmall = {ctor: 'SizeSmall'};
-var _lucamug$elm_style_framework$Framework_Button$StateDisabled = {ctor: 'StateDisabled'};
-var _lucamug$elm_style_framework$Framework_Button$StateWaiting = {ctor: 'StateWaiting'};
-var _lucamug$elm_style_framework$Framework_Button$StateLoading = {ctor: 'StateLoading'};
-var _lucamug$elm_style_framework$Framework_Button$StateOutlined = {ctor: 'StateOutlined'};
-var _lucamug$elm_style_framework$Framework_Button$processConf = F2(
+var _puruzio$elm_style_framework$Framework_Button$SizeLarge = {ctor: 'SizeLarge'};
+var _puruzio$elm_style_framework$Framework_Button$SizeMedium = {ctor: 'SizeMedium'};
+var _puruzio$elm_style_framework$Framework_Button$SizeDefault = {ctor: 'SizeDefault'};
+var _puruzio$elm_style_framework$Framework_Button$SizeSmall = {ctor: 'SizeSmall'};
+var _puruzio$elm_style_framework$Framework_Button$StateDisabled = {ctor: 'StateDisabled'};
+var _puruzio$elm_style_framework$Framework_Button$StateWaiting = {ctor: 'StateWaiting'};
+var _puruzio$elm_style_framework$Framework_Button$StateLoading = {ctor: 'StateLoading'};
+var _puruzio$elm_style_framework$Framework_Button$StateOutlined = {ctor: 'StateOutlined'};
+var _puruzio$elm_style_framework$Framework_Button$processConf = F2(
 	function (modifier, conf) {
 		var _p2 = modifier;
 		switch (_p2.ctor) {
 			case 'Muted':
 				return _elm_lang$core$Native_Utils.update(
 					conf,
-					{color: _lucamug$elm_style_framework$Framework_Color$Muted});
+					{color: _puruzio$elm_style_framework$Framework_Color$Muted});
 			case 'Primary':
 				return _elm_lang$core$Native_Utils.update(
 					conf,
-					{color: _lucamug$elm_style_framework$Framework_Color$Primary});
+					{color: _puruzio$elm_style_framework$Framework_Color$Primary});
 			case 'Success':
 				return _elm_lang$core$Native_Utils.update(
 					conf,
-					{color: _lucamug$elm_style_framework$Framework_Color$Success});
+					{color: _puruzio$elm_style_framework$Framework_Color$Success});
 			case 'Info':
 				return _elm_lang$core$Native_Utils.update(
 					conf,
-					{color: _lucamug$elm_style_framework$Framework_Color$Info});
+					{color: _puruzio$elm_style_framework$Framework_Color$Info});
 			case 'Warning':
 				return _elm_lang$core$Native_Utils.update(
 					conf,
-					{color: _lucamug$elm_style_framework$Framework_Color$Warning});
+					{color: _puruzio$elm_style_framework$Framework_Color$Warning});
 			case 'Danger':
 				return _elm_lang$core$Native_Utils.update(
 					conf,
-					{color: _lucamug$elm_style_framework$Framework_Color$Danger});
+					{color: _puruzio$elm_style_framework$Framework_Color$Danger});
 			case 'Small':
 				return _elm_lang$core$Native_Utils.update(
 					conf,
-					{size: _lucamug$elm_style_framework$Framework_Button$SizeSmall});
+					{size: _puruzio$elm_style_framework$Framework_Button$SizeSmall});
 			case 'Medium':
 				return _elm_lang$core$Native_Utils.update(
 					conf,
-					{size: _lucamug$elm_style_framework$Framework_Button$SizeMedium});
+					{size: _puruzio$elm_style_framework$Framework_Button$SizeMedium});
 			case 'Large':
 				return _elm_lang$core$Native_Utils.update(
 					conf,
-					{size: _lucamug$elm_style_framework$Framework_Button$SizeLarge});
+					{size: _puruzio$elm_style_framework$Framework_Button$SizeLarge});
 			case 'Outlined':
 				return _elm_lang$core$Native_Utils.update(
 					conf,
-					{state: _lucamug$elm_style_framework$Framework_Button$StateOutlined});
+					{state: _puruzio$elm_style_framework$Framework_Button$StateOutlined});
 			case 'Loading':
 				return _elm_lang$core$Native_Utils.update(
 					conf,
-					{state: _lucamug$elm_style_framework$Framework_Button$StateLoading});
+					{state: _puruzio$elm_style_framework$Framework_Button$StateLoading});
 			case 'Waiting':
 				return _elm_lang$core$Native_Utils.update(
 					conf,
-					{state: _lucamug$elm_style_framework$Framework_Button$StateWaiting});
+					{state: _puruzio$elm_style_framework$Framework_Button$StateWaiting});
 			default:
 				return _elm_lang$core$Native_Utils.update(
 					conf,
-					{state: _lucamug$elm_style_framework$Framework_Button$StateDisabled});
+					{state: _puruzio$elm_style_framework$Framework_Button$StateDisabled});
 		}
 	});
-var _lucamug$elm_style_framework$Framework_Button$StateDefault = {ctor: 'StateDefault'};
-var _lucamug$elm_style_framework$Framework_Button$buttonAttr = function (modifiers) {
+var _puruzio$elm_style_framework$Framework_Button$StateDefault = {ctor: 'StateDefault'};
+var _puruzio$elm_style_framework$Framework_Button$buttonAttr = function (modifiers) {
 	var conf = A3(
 		_elm_lang$core$List$foldl,
-		_lucamug$elm_style_framework$Framework_Button$processConf,
-		{color: _lucamug$elm_style_framework$Framework_Button$colorDefault, size: _lucamug$elm_style_framework$Framework_Button$SizeDefault, state: _lucamug$elm_style_framework$Framework_Button$StateDefault},
+		_puruzio$elm_style_framework$Framework_Button$processConf,
+		{color: _puruzio$elm_style_framework$Framework_Button$colorDefault, size: _puruzio$elm_style_framework$Framework_Button$SizeDefault, state: _puruzio$elm_style_framework$Framework_Button$StateDefault},
 		modifiers);
-	var color = _lucamug$elm_style_framework$Framework_Color$color(conf.color);
-	var fontSize = _lucamug$elm_style_framework$Framework_Button$toPx(conf.size);
-	var buttonPadding = _lucamug$elm_style_framework$Framework_Button$toButtonPadding(conf.size);
+	var color = _puruzio$elm_style_framework$Framework_Color$color(conf.color);
+	var fontSize = _puruzio$elm_style_framework$Framework_Button$toPx(conf.size);
+	var buttonPadding = _puruzio$elm_style_framework$Framework_Button$toButtonPadding(conf.size);
 	var backgroundColor = function () {
 		var _p3 = conf.state;
 		switch (_p3.ctor) {
@@ -27074,9 +23228,9 @@ var _lucamug$elm_style_framework$Framework_Button$buttonAttr = function (modifie
 			case 'StateOutlined':
 				var _p4 = conf.color;
 				if (_p4.ctor === 'White') {
-					return _lucamug$elm_style_framework$Framework_Color$color(_lucamug$elm_style_framework$Framework_Button$colorBorderDefault);
+					return _puruzio$elm_style_framework$Framework_Color$color(_puruzio$elm_style_framework$Framework_Button$colorBorderDefault);
 				} else {
-					return _lucamug$elm_style_framework$Framework_Color$color(_lucamug$elm_style_framework$Framework_Color$Transparent);
+					return _puruzio$elm_style_framework$Framework_Color$color(_puruzio$elm_style_framework$Framework_Color$Transparent);
 				}
 			case 'StateLoading':
 				return color;
@@ -27084,9 +23238,9 @@ var _lucamug$elm_style_framework$Framework_Button$buttonAttr = function (modifie
 				return color;
 			default:
 				return A2(
-					_lucamug$elm_style_framework$Framework_Color$saturate,
+					_puruzio$elm_style_framework$Framework_Color$saturate,
 					0.9,
-					A2(_lucamug$elm_style_framework$Framework_Color$lighten, 1.2, color));
+					A2(_puruzio$elm_style_framework$Framework_Color$lighten, 1.2, color));
 		}
 	}();
 	var backgroundMouseOverColor = function () {
@@ -27095,9 +23249,9 @@ var _lucamug$elm_style_framework$Framework_Button$buttonAttr = function (modifie
 			return color;
 		} else {
 			return A2(
-				_lucamug$elm_style_framework$Framework_Color$saturate,
+				_puruzio$elm_style_framework$Framework_Color$saturate,
 				0.9,
-				A2(_lucamug$elm_style_framework$Framework_Color$lighten, 0.8, backgroundColor));
+				A2(_puruzio$elm_style_framework$Framework_Color$lighten, 0.8, backgroundColor));
 		}
 	}();
 	var borderRounded = function () {
@@ -27111,7 +23265,7 @@ var _lucamug$elm_style_framework$Framework_Button$buttonAttr = function (modifie
 	var borderColor = function () {
 		var _p7 = conf.color;
 		if (_p7.ctor === 'White') {
-			return _lucamug$elm_style_framework$Framework_Color$color(_lucamug$elm_style_framework$Framework_Button$colorBorderDefault);
+			return _puruzio$elm_style_framework$Framework_Color$color(_puruzio$elm_style_framework$Framework_Button$colorBorderDefault);
 		} else {
 			var _p8 = conf.state;
 			if (_p8.ctor === 'StateOutlined') {
@@ -27122,15 +23276,15 @@ var _lucamug$elm_style_framework$Framework_Button$buttonAttr = function (modifie
 		}
 	}();
 	var borderMouseOverColor = A2(
-		_lucamug$elm_style_framework$Framework_Color$saturate,
+		_puruzio$elm_style_framework$Framework_Color$saturate,
 		0.9,
-		A2(_lucamug$elm_style_framework$Framework_Color$lighten, 0.8, borderColor));
+		A2(_puruzio$elm_style_framework$Framework_Color$lighten, 0.8, borderColor));
 	var spinnerColor = function () {
 		var _p9 = conf.color;
 		if (_p9.ctor === 'White') {
-			return _lucamug$elm_style_framework$Framework_Color$color(_lucamug$elm_style_framework$Framework_Color$GrayDark);
+			return _puruzio$elm_style_framework$Framework_Color$color(_puruzio$elm_style_framework$Framework_Color$GrayDark);
 		} else {
-			return _lucamug$elm_style_framework$Framework_Color$color(_lucamug$elm_style_framework$Framework_Color$White);
+			return _puruzio$elm_style_framework$Framework_Color$color(_puruzio$elm_style_framework$Framework_Color$White);
 		}
 	}();
 	var fontColor = function () {
@@ -27139,15 +23293,15 @@ var _lucamug$elm_style_framework$Framework_Button$buttonAttr = function (modifie
 			case 'StateOutlined':
 				return color;
 			case 'StateLoading':
-				return _lucamug$elm_style_framework$Framework_Color$color(_lucamug$elm_style_framework$Framework_Color$Transparent);
+				return _puruzio$elm_style_framework$Framework_Color$color(_puruzio$elm_style_framework$Framework_Color$Transparent);
 			case 'StateWaiting':
-				return _lucamug$elm_style_framework$Framework_Color$color(_lucamug$elm_style_framework$Framework_Color$Transparent);
+				return _puruzio$elm_style_framework$Framework_Color$color(_puruzio$elm_style_framework$Framework_Color$Transparent);
 			default:
 				var _p11 = conf.color;
 				if (_p11.ctor === 'White') {
-					return _lucamug$elm_style_framework$Framework_Color$color(_lucamug$elm_style_framework$Framework_Color$GrayDark);
+					return _puruzio$elm_style_framework$Framework_Color$color(_puruzio$elm_style_framework$Framework_Color$GrayDark);
 				} else {
-					return _lucamug$elm_style_framework$Framework_Color$color(_lucamug$elm_style_framework$Framework_Color$White);
+					return _puruzio$elm_style_framework$Framework_Color$color(_puruzio$elm_style_framework$Framework_Color$White);
 				}
 		}
 	}();
@@ -27155,16 +23309,16 @@ var _lucamug$elm_style_framework$Framework_Button$buttonAttr = function (modifie
 		var _p12 = conf.state;
 		switch (_p12.ctor) {
 			case 'StateLoading':
-				return _lucamug$elm_style_framework$Framework_Color$color(_lucamug$elm_style_framework$Framework_Color$Transparent);
+				return _puruzio$elm_style_framework$Framework_Color$color(_puruzio$elm_style_framework$Framework_Color$Transparent);
 			case 'StateWaiting':
-				return _lucamug$elm_style_framework$Framework_Color$color(_lucamug$elm_style_framework$Framework_Color$Transparent);
+				return _puruzio$elm_style_framework$Framework_Color$color(_puruzio$elm_style_framework$Framework_Color$Transparent);
 			case 'StateOutlined':
-				return _lucamug$elm_style_framework$Framework_Color$color(_lucamug$elm_style_framework$Framework_Color$White);
+				return _puruzio$elm_style_framework$Framework_Color$color(_puruzio$elm_style_framework$Framework_Color$White);
 			default:
 				return A2(
-					_lucamug$elm_style_framework$Framework_Color$saturate,
+					_puruzio$elm_style_framework$Framework_Color$saturate,
 					0.9,
-					A2(_lucamug$elm_style_framework$Framework_Color$lighten, 0.8, fontColor));
+					A2(_puruzio$elm_style_framework$Framework_Color$lighten, 0.8, fontColor));
 		}
 	}();
 	var inFrontAddon = function () {
@@ -27185,7 +23339,7 @@ var _lucamug$elm_style_framework$Framework_Button$buttonAttr = function (modifie
 									_1: {ctor: '[]'}
 								}
 							},
-							A3(_lucamug$elm_style_framework$Framework_Spinner$spinner, _lucamug$elm_style_framework$Framework_Spinner$Rotation, fontSize, spinnerColor))),
+							A3(_puruzio$elm_style_framework$Framework_Spinner$spinner, _puruzio$elm_style_framework$Framework_Spinner$Rotation, fontSize, spinnerColor))),
 					_1: {ctor: '[]'}
 				};
 			case 'StateWaiting':
@@ -27203,7 +23357,7 @@ var _lucamug$elm_style_framework$Framework_Button$buttonAttr = function (modifie
 									_1: {ctor: '[]'}
 								}
 							},
-							A3(_lucamug$elm_style_framework$Framework_Spinner$spinner, _lucamug$elm_style_framework$Framework_Spinner$ThreeCircles, fontSize, spinnerColor))),
+							A3(_puruzio$elm_style_framework$Framework_Spinner$spinner, _puruzio$elm_style_framework$Framework_Spinner$ThreeCircles, fontSize, spinnerColor))),
 					_1: {ctor: '[]'}
 				};
 			default:
@@ -27263,17 +23417,17 @@ var _lucamug$elm_style_framework$Framework_Button$buttonAttr = function (modifie
 		},
 		inFrontAddon);
 };
-var _lucamug$elm_style_framework$Framework_Button$button = F3(
+var _puruzio$elm_style_framework$Framework_Button$button = F3(
 	function (modifiers, onPress, label) {
 		return A2(
 			_mdgriffith$stylish_elephants$Element_Input$button,
-			_lucamug$elm_style_framework$Framework_Button$buttonAttr(modifiers),
+			_puruzio$elm_style_framework$Framework_Button$buttonAttr(modifiers),
 			{
 				onPress: onPress,
 				label: _mdgriffith$stylish_elephants$Element$text(label)
 			});
 	});
-var _lucamug$elm_style_framework$Framework_Button$introspection = function () {
+var _puruzio$elm_style_framework$Framework_Button$introspection = function () {
 	var buttonText = 'Button';
 	return {
 		name: 'Buttons',
@@ -27284,16 +23438,16 @@ var _lucamug$elm_style_framework$Framework_Button$introspection = function () {
 			'button [ Medium, Success, Outlined ] Nothing \"',
 			A2(_elm_lang$core$Basics_ops['++'], buttonText, '\"')),
 		usageResult: A3(
-			_lucamug$elm_style_framework$Framework_Button$button,
+			_puruzio$elm_style_framework$Framework_Button$button,
 			{
 				ctor: '::',
-				_0: _lucamug$elm_style_framework$Framework_Modifiers$Medium,
+				_0: _puruzio$elm_style_framework$Framework_Modifiers$Medium,
 				_1: {
 					ctor: '::',
-					_0: _lucamug$elm_style_framework$Framework_Modifiers$Success,
+					_0: _puruzio$elm_style_framework$Framework_Modifiers$Success,
 					_1: {
 						ctor: '::',
-						_0: _lucamug$elm_style_framework$Framework_Modifiers$Outlined,
+						_0: _puruzio$elm_style_framework$Framework_Modifiers$Outlined,
 						_1: {ctor: '[]'}
 					}
 				}
@@ -27311,10 +23465,10 @@ var _lucamug$elm_style_framework$Framework_Button$introspection = function () {
 					_0: {
 						ctor: '_Tuple2',
 						_0: A3(
-							_lucamug$elm_style_framework$Framework_Button$button,
+							_puruzio$elm_style_framework$Framework_Button$button,
 							{
 								ctor: '::',
-								_0: _lucamug$elm_style_framework$Framework_Modifiers$Primary,
+								_0: _puruzio$elm_style_framework$Framework_Modifiers$Primary,
 								_1: {ctor: '[]'}
 							},
 							_elm_lang$core$Maybe$Nothing,
@@ -27329,13 +23483,13 @@ var _lucamug$elm_style_framework$Framework_Button$introspection = function () {
 						_0: {
 							ctor: '_Tuple2',
 							_0: A3(
-								_lucamug$elm_style_framework$Framework_Button$button,
+								_puruzio$elm_style_framework$Framework_Button$button,
 								{
 									ctor: '::',
-									_0: _lucamug$elm_style_framework$Framework_Modifiers$Primary,
+									_0: _puruzio$elm_style_framework$Framework_Modifiers$Primary,
 									_1: {
 										ctor: '::',
-										_0: _lucamug$elm_style_framework$Framework_Modifiers$Outlined,
+										_0: _puruzio$elm_style_framework$Framework_Modifiers$Outlined,
 										_1: {ctor: '[]'}
 									}
 								},
@@ -27351,13 +23505,13 @@ var _lucamug$elm_style_framework$Framework_Button$introspection = function () {
 							_0: {
 								ctor: '_Tuple2',
 								_0: A3(
-									_lucamug$elm_style_framework$Framework_Button$button,
+									_puruzio$elm_style_framework$Framework_Button$button,
 									{
 										ctor: '::',
-										_0: _lucamug$elm_style_framework$Framework_Modifiers$Primary,
+										_0: _puruzio$elm_style_framework$Framework_Modifiers$Primary,
 										_1: {
 											ctor: '::',
-											_0: _lucamug$elm_style_framework$Framework_Modifiers$Loading,
+											_0: _puruzio$elm_style_framework$Framework_Modifiers$Loading,
 											_1: {ctor: '[]'}
 										}
 									},
@@ -27373,13 +23527,13 @@ var _lucamug$elm_style_framework$Framework_Button$introspection = function () {
 								_0: {
 									ctor: '_Tuple2',
 									_0: A3(
-										_lucamug$elm_style_framework$Framework_Button$button,
+										_puruzio$elm_style_framework$Framework_Button$button,
 										{
 											ctor: '::',
-											_0: _lucamug$elm_style_framework$Framework_Modifiers$Primary,
+											_0: _puruzio$elm_style_framework$Framework_Modifiers$Primary,
 											_1: {
 												ctor: '::',
-												_0: _lucamug$elm_style_framework$Framework_Modifiers$Waiting,
+												_0: _puruzio$elm_style_framework$Framework_Modifiers$Waiting,
 												_1: {ctor: '[]'}
 											}
 										},
@@ -27395,13 +23549,13 @@ var _lucamug$elm_style_framework$Framework_Button$introspection = function () {
 									_0: {
 										ctor: '_Tuple2',
 										_0: A3(
-											_lucamug$elm_style_framework$Framework_Button$button,
+											_puruzio$elm_style_framework$Framework_Button$button,
 											{
 												ctor: '::',
-												_0: _lucamug$elm_style_framework$Framework_Modifiers$Primary,
+												_0: _puruzio$elm_style_framework$Framework_Modifiers$Primary,
 												_1: {
 													ctor: '::',
-													_0: _lucamug$elm_style_framework$Framework_Modifiers$Disabled,
+													_0: _puruzio$elm_style_framework$Framework_Modifiers$Disabled,
 													_1: {ctor: '[]'}
 												}
 											},
@@ -27429,10 +23583,10 @@ var _lucamug$elm_style_framework$Framework_Button$introspection = function () {
 						_0: {
 							ctor: '_Tuple2',
 							_0: A3(
-								_lucamug$elm_style_framework$Framework_Button$button,
+								_puruzio$elm_style_framework$Framework_Button$button,
 								{
 									ctor: '::',
-									_0: _lucamug$elm_style_framework$Framework_Modifiers$Muted,
+									_0: _puruzio$elm_style_framework$Framework_Modifiers$Muted,
 									_1: {ctor: '[]'}
 								},
 								_elm_lang$core$Maybe$Nothing,
@@ -27447,10 +23601,10 @@ var _lucamug$elm_style_framework$Framework_Button$introspection = function () {
 							_0: {
 								ctor: '_Tuple2',
 								_0: A3(
-									_lucamug$elm_style_framework$Framework_Button$button,
+									_puruzio$elm_style_framework$Framework_Button$button,
 									{
 										ctor: '::',
-										_0: _lucamug$elm_style_framework$Framework_Modifiers$Primary,
+										_0: _puruzio$elm_style_framework$Framework_Modifiers$Primary,
 										_1: {ctor: '[]'}
 									},
 									_elm_lang$core$Maybe$Nothing,
@@ -27465,10 +23619,10 @@ var _lucamug$elm_style_framework$Framework_Button$introspection = function () {
 								_0: {
 									ctor: '_Tuple2',
 									_0: A3(
-										_lucamug$elm_style_framework$Framework_Button$button,
+										_puruzio$elm_style_framework$Framework_Button$button,
 										{
 											ctor: '::',
-											_0: _lucamug$elm_style_framework$Framework_Modifiers$Success,
+											_0: _puruzio$elm_style_framework$Framework_Modifiers$Success,
 											_1: {ctor: '[]'}
 										},
 										_elm_lang$core$Maybe$Nothing,
@@ -27483,10 +23637,10 @@ var _lucamug$elm_style_framework$Framework_Button$introspection = function () {
 									_0: {
 										ctor: '_Tuple2',
 										_0: A3(
-											_lucamug$elm_style_framework$Framework_Button$button,
+											_puruzio$elm_style_framework$Framework_Button$button,
 											{
 												ctor: '::',
-												_0: _lucamug$elm_style_framework$Framework_Modifiers$Info,
+												_0: _puruzio$elm_style_framework$Framework_Modifiers$Info,
 												_1: {ctor: '[]'}
 											},
 											_elm_lang$core$Maybe$Nothing,
@@ -27501,10 +23655,10 @@ var _lucamug$elm_style_framework$Framework_Button$introspection = function () {
 										_0: {
 											ctor: '_Tuple2',
 											_0: A3(
-												_lucamug$elm_style_framework$Framework_Button$button,
+												_puruzio$elm_style_framework$Framework_Button$button,
 												{
 													ctor: '::',
-													_0: _lucamug$elm_style_framework$Framework_Modifiers$Warning,
+													_0: _puruzio$elm_style_framework$Framework_Modifiers$Warning,
 													_1: {ctor: '[]'}
 												},
 												_elm_lang$core$Maybe$Nothing,
@@ -27519,10 +23673,10 @@ var _lucamug$elm_style_framework$Framework_Button$introspection = function () {
 											_0: {
 												ctor: '_Tuple2',
 												_0: A3(
-													_lucamug$elm_style_framework$Framework_Button$button,
+													_puruzio$elm_style_framework$Framework_Button$button,
 													{
 														ctor: '::',
-														_0: _lucamug$elm_style_framework$Framework_Modifiers$Danger,
+														_0: _puruzio$elm_style_framework$Framework_Modifiers$Danger,
 														_1: {ctor: '[]'}
 													},
 													_elm_lang$core$Maybe$Nothing,
@@ -27537,7 +23691,7 @@ var _lucamug$elm_style_framework$Framework_Button$introspection = function () {
 												_0: {
 													ctor: '_Tuple2',
 													_0: A3(
-														_lucamug$elm_style_framework$Framework_Button$button,
+														_puruzio$elm_style_framework$Framework_Button$button,
 														{ctor: '[]'},
 														_elm_lang$core$Maybe$Nothing,
 														buttonText),
@@ -27565,10 +23719,10 @@ var _lucamug$elm_style_framework$Framework_Button$introspection = function () {
 							_0: {
 								ctor: '_Tuple2',
 								_0: A3(
-									_lucamug$elm_style_framework$Framework_Button$button,
+									_puruzio$elm_style_framework$Framework_Button$button,
 									{
 										ctor: '::',
-										_0: _lucamug$elm_style_framework$Framework_Modifiers$Small,
+										_0: _puruzio$elm_style_framework$Framework_Modifiers$Small,
 										_1: {ctor: '[]'}
 									},
 									_elm_lang$core$Maybe$Nothing,
@@ -27583,7 +23737,7 @@ var _lucamug$elm_style_framework$Framework_Button$introspection = function () {
 								_0: {
 									ctor: '_Tuple2',
 									_0: A3(
-										_lucamug$elm_style_framework$Framework_Button$button,
+										_puruzio$elm_style_framework$Framework_Button$button,
 										{ctor: '[]'},
 										_elm_lang$core$Maybe$Nothing,
 										buttonText),
@@ -27597,10 +23751,10 @@ var _lucamug$elm_style_framework$Framework_Button$introspection = function () {
 									_0: {
 										ctor: '_Tuple2',
 										_0: A3(
-											_lucamug$elm_style_framework$Framework_Button$button,
+											_puruzio$elm_style_framework$Framework_Button$button,
 											{
 												ctor: '::',
-												_0: _lucamug$elm_style_framework$Framework_Modifiers$Medium,
+												_0: _puruzio$elm_style_framework$Framework_Modifiers$Medium,
 												_1: {ctor: '[]'}
 											},
 											_elm_lang$core$Maybe$Nothing,
@@ -27615,10 +23769,10 @@ var _lucamug$elm_style_framework$Framework_Button$introspection = function () {
 										_0: {
 											ctor: '_Tuple2',
 											_0: A3(
-												_lucamug$elm_style_framework$Framework_Button$button,
+												_puruzio$elm_style_framework$Framework_Button$button,
 												{
 													ctor: '::',
-													_0: _lucamug$elm_style_framework$Framework_Modifiers$Large,
+													_0: _puruzio$elm_style_framework$Framework_Modifiers$Large,
 													_1: {ctor: '[]'}
 												},
 												_elm_lang$core$Maybe$Nothing,
@@ -27645,10 +23799,10 @@ var _lucamug$elm_style_framework$Framework_Button$introspection = function () {
 									ctor: '_Tuple2',
 									_0: A2(
 										_mdgriffith$stylish_elephants$Element_Input$button,
-										_lucamug$elm_style_framework$Framework_Button$buttonAttr(
+										_puruzio$elm_style_framework$Framework_Button$buttonAttr(
 											{
 												ctor: '::',
-												_0: _lucamug$elm_style_framework$Framework_Modifiers$Primary,
+												_0: _puruzio$elm_style_framework$Framework_Modifiers$Primary,
 												_1: {ctor: '[]'}
 											}),
 										{
@@ -27663,10 +23817,10 @@ var _lucamug$elm_style_framework$Framework_Button$introspection = function () {
 										ctor: '_Tuple2',
 										_0: A2(
 											_mdgriffith$stylish_elephants$Element$el,
-											_lucamug$elm_style_framework$Framework_Button$buttonAttr(
+											_puruzio$elm_style_framework$Framework_Button$buttonAttr(
 												{
 													ctor: '::',
-													_0: _lucamug$elm_style_framework$Framework_Modifiers$Primary,
+													_0: _puruzio$elm_style_framework$Framework_Modifiers$Primary,
 													_1: {ctor: '[]'}
 												}),
 											_mdgriffith$stylish_elephants$Element$text('Button')),
@@ -27678,16 +23832,16 @@ var _lucamug$elm_style_framework$Framework_Button$introspection = function () {
 											ctor: '_Tuple2',
 											_0: A2(
 												_mdgriffith$stylish_elephants$Element$el,
-												_lucamug$elm_style_framework$Framework_Button$buttonAttr(
+												_puruzio$elm_style_framework$Framework_Button$buttonAttr(
 													{
 														ctor: '::',
-														_0: _lucamug$elm_style_framework$Framework_Modifiers$Danger,
+														_0: _puruzio$elm_style_framework$Framework_Modifiers$Danger,
 														_1: {
 															ctor: '::',
-															_0: _lucamug$elm_style_framework$Framework_Modifiers$Outlined,
+															_0: _puruzio$elm_style_framework$Framework_Modifiers$Outlined,
 															_1: {
 																ctor: '::',
-																_0: _lucamug$elm_style_framework$Framework_Modifiers$Medium,
+																_0: _puruzio$elm_style_framework$Framework_Modifiers$Medium,
 																_1: {ctor: '[]'}
 															}
 														}
@@ -27703,10 +23857,10 @@ var _lucamug$elm_style_framework$Framework_Button$introspection = function () {
 													_mdgriffith$stylish_elephants$Element$column,
 													A2(
 														_elm_lang$core$Basics_ops['++'],
-														_lucamug$elm_style_framework$Framework_Button$buttonAttr(
+														_puruzio$elm_style_framework$Framework_Button$buttonAttr(
 															{
 																ctor: '::',
-																_0: _lucamug$elm_style_framework$Framework_Modifiers$Warning,
+																_0: _puruzio$elm_style_framework$Framework_Modifiers$Warning,
 																_1: {ctor: '[]'}
 															}),
 														{
@@ -27733,13 +23887,13 @@ var _lucamug$elm_style_framework$Framework_Button$introspection = function () {
 														_mdgriffith$stylish_elephants$Element$column,
 														A2(
 															_elm_lang$core$Basics_ops['++'],
-															_lucamug$elm_style_framework$Framework_Button$buttonAttr(
+															_puruzio$elm_style_framework$Framework_Button$buttonAttr(
 																{
 																	ctor: '::',
-																	_0: _lucamug$elm_style_framework$Framework_Modifiers$Warning,
+																	_0: _puruzio$elm_style_framework$Framework_Modifiers$Warning,
 																	_1: {
 																		ctor: '::',
-																		_0: _lucamug$elm_style_framework$Framework_Modifiers$Waiting,
+																		_0: _puruzio$elm_style_framework$Framework_Modifiers$Waiting,
 																		_1: {ctor: '[]'}
 																	}
 																}),
@@ -27767,10 +23921,10 @@ var _lucamug$elm_style_framework$Framework_Button$introspection = function () {
 															_mdgriffith$stylish_elephants$Element$row,
 															A2(
 																_elm_lang$core$Basics_ops['++'],
-																_lucamug$elm_style_framework$Framework_Button$buttonAttr(
+																_puruzio$elm_style_framework$Framework_Button$buttonAttr(
 																	{
 																		ctor: '::',
-																		_0: _lucamug$elm_style_framework$Framework_Modifiers$Info,
+																		_0: _puruzio$elm_style_framework$Framework_Modifiers$Info,
 																		_1: {ctor: '[]'}
 																	}),
 																{
@@ -27795,13 +23949,13 @@ var _lucamug$elm_style_framework$Framework_Button$introspection = function () {
 															ctor: '_Tuple2',
 															_0: A2(
 																_mdgriffith$stylish_elephants$Element_Input$button,
-																_lucamug$elm_style_framework$Framework_Button$buttonAttr(
+																_puruzio$elm_style_framework$Framework_Button$buttonAttr(
 																	{
 																		ctor: '::',
-																		_0: _lucamug$elm_style_framework$Framework_Modifiers$Primary,
+																		_0: _puruzio$elm_style_framework$Framework_Modifiers$Primary,
 																		_1: {
 																			ctor: '::',
-																			_0: _lucamug$elm_style_framework$Framework_Modifiers$Danger,
+																			_0: _puruzio$elm_style_framework$Framework_Modifiers$Danger,
 																			_1: {ctor: '[]'}
 																		}
 																	}),
@@ -27828,7 +23982,7 @@ var _lucamug$elm_style_framework$Framework_Button$introspection = function () {
 	};
 }();
 
-var _lucamug$elm_style_framework$Framework_Cards$simple = function (content) {
+var _puruzio$elm_style_framework$Framework_Cards$simple = function (content) {
 	return A2(
 		_mdgriffith$stylish_elephants$Element$el,
 		{
@@ -27840,7 +23994,7 @@ var _lucamug$elm_style_framework$Framework_Cards$simple = function (content) {
 				_1: {
 					ctor: '::',
 					_0: _mdgriffith$stylish_elephants$Element_Border$color(
-						_lucamug$elm_style_framework$Framework_Color$color(_lucamug$elm_style_framework$Framework_Color$GrayLighter)),
+						_puruzio$elm_style_framework$Framework_Color$color(_puruzio$elm_style_framework$Framework_Color$GrayLighter)),
 					_1: {
 						ctor: '::',
 						_0: _mdgriffith$stylish_elephants$Element_Border$rounded(4),
@@ -27851,7 +24005,7 @@ var _lucamug$elm_style_framework$Framework_Cards$simple = function (content) {
 									offset: {ctor: '_Tuple2', _0: 0, _1: 4},
 									blur: 10,
 									size: 2,
-									color: _lucamug$elm_style_framework$Framework_Color$color(_lucamug$elm_style_framework$Framework_Color$GrayLighter)
+									color: _puruzio$elm_style_framework$Framework_Color$color(_puruzio$elm_style_framework$Framework_Color$GrayLighter)
 								}),
 							_1: {
 								ctor: '::',
@@ -27862,7 +24016,7 @@ var _lucamug$elm_style_framework$Framework_Cards$simple = function (content) {
 									_1: {
 										ctor: '::',
 										_0: _mdgriffith$stylish_elephants$Element_Background$color(
-											_lucamug$elm_style_framework$Framework_Color$color(_lucamug$elm_style_framework$Framework_Color$White)),
+											_puruzio$elm_style_framework$Framework_Color$color(_puruzio$elm_style_framework$Framework_Color$White)),
 										_1: {ctor: '[]'}
 									}
 								}
@@ -27874,7 +24028,7 @@ var _lucamug$elm_style_framework$Framework_Cards$simple = function (content) {
 		},
 		content);
 };
-var _lucamug$elm_style_framework$Framework_Cards$simpleWithTitle = F3(
+var _puruzio$elm_style_framework$Framework_Cards$simpleWithTitle = F3(
 	function (title, subTitle, content) {
 		return A2(
 			_mdgriffith$stylish_elephants$Element$column,
@@ -27884,7 +24038,7 @@ var _lucamug$elm_style_framework$Framework_Cards$simpleWithTitle = F3(
 				_1: {
 					ctor: '::',
 					_0: _mdgriffith$stylish_elephants$Element_Border$color(
-						_lucamug$elm_style_framework$Framework_Color$color(_lucamug$elm_style_framework$Framework_Color$GrayLighter)),
+						_puruzio$elm_style_framework$Framework_Color$color(_puruzio$elm_style_framework$Framework_Color$GrayLighter)),
 					_1: {
 						ctor: '::',
 						_0: _mdgriffith$stylish_elephants$Element_Border$rounded(4),
@@ -27895,7 +24049,7 @@ var _lucamug$elm_style_framework$Framework_Cards$simpleWithTitle = F3(
 									offset: {ctor: '_Tuple2', _0: 0, _1: 4},
 									blur: 10,
 									size: 2,
-									color: _lucamug$elm_style_framework$Framework_Color$color(_lucamug$elm_style_framework$Framework_Color$GrayLighter)
+									color: _puruzio$elm_style_framework$Framework_Color$color(_puruzio$elm_style_framework$Framework_Color$GrayLighter)
 								}),
 							_1: {
 								ctor: '::',
@@ -27906,7 +24060,7 @@ var _lucamug$elm_style_framework$Framework_Cards$simpleWithTitle = F3(
 									_1: {
 										ctor: '::',
 										_0: _mdgriffith$stylish_elephants$Element_Background$color(
-											_lucamug$elm_style_framework$Framework_Color$color(_lucamug$elm_style_framework$Framework_Color$White)),
+											_puruzio$elm_style_framework$Framework_Color$color(_puruzio$elm_style_framework$Framework_Color$White)),
 										_1: {ctor: '[]'}
 									}
 								}
@@ -27929,7 +24083,7 @@ var _lucamug$elm_style_framework$Framework_Cards$simpleWithTitle = F3(
 							_1: {
 								ctor: '::',
 								_0: _mdgriffith$stylish_elephants$Element_Border$color(
-									_lucamug$elm_style_framework$Framework_Color$color(_lucamug$elm_style_framework$Framework_Color$GrayLight)),
+									_puruzio$elm_style_framework$Framework_Color$color(_puruzio$elm_style_framework$Framework_Color$GrayLight)),
 								_1: {
 									ctor: '::',
 									_0: _mdgriffith$stylish_elephants$Element$width(_mdgriffith$stylish_elephants$Element$fill),
@@ -27962,7 +24116,7 @@ var _lucamug$elm_style_framework$Framework_Cards$simpleWithTitle = F3(
 									{
 										ctor: '::',
 										_0: _mdgriffith$stylish_elephants$Element_Font$color(
-											_lucamug$elm_style_framework$Framework_Color$color(_lucamug$elm_style_framework$Framework_Color$GrayMedium)),
+											_puruzio$elm_style_framework$Framework_Color$color(_puruzio$elm_style_framework$Framework_Color$GrayMedium)),
 										_1: {ctor: '[]'}
 									},
 									_mdgriffith$stylish_elephants$Element$text(subTitle)),
@@ -27987,13 +24141,13 @@ var _lucamug$elm_style_framework$Framework_Cards$simpleWithTitle = F3(
 				}
 			});
 	});
-var _lucamug$elm_style_framework$Framework_Cards$introspection = {
+var _puruzio$elm_style_framework$Framework_Cards$introspection = {
 	name: 'Cards',
 	signature: 'simpleWithTitle : String -> String -> Element msg -> Element msg',
 	description: 'Wrapper for content',
 	usage: 'simpleWithTitle \"Simple\" \"with Title\" (text \"Content\")',
 	usageResult: A3(
-		_lucamug$elm_style_framework$Framework_Cards$simpleWithTitle,
+		_puruzio$elm_style_framework$Framework_Cards$simpleWithTitle,
 		'Simple',
 		'with Title',
 		_mdgriffith$stylish_elephants$Element$text('Content')),
@@ -28008,7 +24162,7 @@ var _lucamug$elm_style_framework$Framework_Cards$introspection = {
 				_0: {
 					ctor: '_Tuple2',
 					_0: A3(
-						_lucamug$elm_style_framework$Framework_Cards$simpleWithTitle,
+						_puruzio$elm_style_framework$Framework_Cards$simpleWithTitle,
 						'Simple',
 						'with Title',
 						_mdgriffith$stylish_elephants$Element$text('Content')),
@@ -28018,7 +24172,7 @@ var _lucamug$elm_style_framework$Framework_Cards$introspection = {
 					ctor: '::',
 					_0: {
 						ctor: '_Tuple2',
-						_0: _lucamug$elm_style_framework$Framework_Cards$simple(
+						_0: _puruzio$elm_style_framework$Framework_Cards$simple(
 							_mdgriffith$stylish_elephants$Element$text('Content')),
 						_1: 'simple <|\n    text \"Content\"'
 					},
@@ -28030,7 +24184,7 @@ var _lucamug$elm_style_framework$Framework_Cards$introspection = {
 	}
 };
 
-var _lucamug$elm_style_framework$Framework_Form$append = F3(
+var _puruzio$elm_style_framework$Framework_Form$append = F3(
 	function (tokens, input, formatted) {
 		append:
 		while (true) {
@@ -28041,7 +24195,7 @@ var _lucamug$elm_style_framework$Framework_Form$append = F3(
 				A2(
 					_elm_lang$core$Maybe$map,
 					A2(
-						_lucamug$elm_style_framework$Framework_Form$append,
+						_puruzio$elm_style_framework$Framework_Form$append,
 						A2(
 							_elm_lang$core$Maybe$withDefault,
 							{ctor: '[]'},
@@ -28084,15 +24238,15 @@ var _lucamug$elm_style_framework$Framework_Form$append = F3(
 			}
 		}
 	});
-var _lucamug$elm_style_framework$Framework_Form$format = F2(
+var _puruzio$elm_style_framework$Framework_Form$format = F2(
 	function (tokens, input) {
 		return _elm_lang$core$String$isEmpty(input) ? input : A3(
-			_lucamug$elm_style_framework$Framework_Form$append,
+			_puruzio$elm_style_framework$Framework_Form$append,
 			tokens,
 			_elm_lang$core$String$toList(input),
 			'');
 	});
-var _lucamug$elm_style_framework$Framework_Form$hackInLineStyle = F2(
+var _puruzio$elm_style_framework$Framework_Form$hackInLineStyle = F2(
 	function (text1, text2) {
 		return _mdgriffith$stylish_elephants$Element$htmlAttribute(
 			_elm_lang$html$Html_Attributes$style(
@@ -28102,7 +24256,7 @@ var _lucamug$elm_style_framework$Framework_Form$hackInLineStyle = F2(
 					_1: {ctor: '[]'}
 				}));
 	});
-var _lucamug$elm_style_framework$Framework_Form$hasFocus = F2(
+var _puruzio$elm_style_framework$Framework_Form$hasFocus = F2(
 	function (model, field) {
 		var _p2 = model.focus;
 		if (_p2.ctor === 'Just') {
@@ -28111,7 +24265,7 @@ var _lucamug$elm_style_framework$Framework_Form$hasFocus = F2(
 			return false;
 		}
 	});
-var _lucamug$elm_style_framework$Framework_Form$introspection = {
+var _puruzio$elm_style_framework$Framework_Form$introspection = {
 	name: 'Form Elements',
 	signature: '',
 	description: 'List of elements for Web Forms',
@@ -28152,33 +24306,33 @@ var _lucamug$elm_style_framework$Framework_Form$introspection = {
 		}
 	}
 };
-var _lucamug$elm_style_framework$Framework_Form$initModel = {
+var _puruzio$elm_style_framework$Framework_Form$initModel = {
 	radio: _elm_lang$core$Maybe$Just('A'),
 	telephone: '',
 	creditCard: '',
 	checkbox: false,
 	focus: _elm_lang$core$Maybe$Nothing
 };
-var _lucamug$elm_style_framework$Framework_Form$Model = F5(
+var _puruzio$elm_style_framework$Framework_Form$Model = F5(
 	function (a, b, c, d, e) {
 		return {radio: a, telephone: b, creditCard: c, checkbox: d, focus: e};
 	});
-var _lucamug$elm_style_framework$Framework_Form$FieldCreditCard = {ctor: 'FieldCreditCard'};
-var _lucamug$elm_style_framework$Framework_Form$FieldTelephone = {ctor: 'FieldTelephone'};
-var _lucamug$elm_style_framework$Framework_Form$OnLoseFocus = function (a) {
+var _puruzio$elm_style_framework$Framework_Form$FieldCreditCard = {ctor: 'FieldCreditCard'};
+var _puruzio$elm_style_framework$Framework_Form$FieldTelephone = {ctor: 'FieldTelephone'};
+var _puruzio$elm_style_framework$Framework_Form$OnLoseFocus = function (a) {
 	return {ctor: 'OnLoseFocus', _0: a};
 };
-var _lucamug$elm_style_framework$Framework_Form$OnFocus = function (a) {
+var _puruzio$elm_style_framework$Framework_Form$OnFocus = function (a) {
 	return {ctor: 'OnFocus', _0: a};
 };
-var _lucamug$elm_style_framework$Framework_Form$Checkbox = function (a) {
+var _puruzio$elm_style_framework$Framework_Form$Checkbox = function (a) {
 	return {ctor: 'Checkbox', _0: a};
 };
-var _lucamug$elm_style_framework$Framework_Form$Input = F3(
+var _puruzio$elm_style_framework$Framework_Form$Input = F3(
 	function (a, b, c) {
 		return {ctor: 'Input', _0: a, _1: b, _2: c};
 	});
-var _lucamug$elm_style_framework$Framework_Form$inputText = F2(
+var _puruzio$elm_style_framework$Framework_Form$inputText = F2(
 	function (model, _p3) {
 		var _p4 = _p3;
 		var _p7 = _p4.pattern;
@@ -28191,7 +24345,7 @@ var _lucamug$elm_style_framework$Framework_Form$inputText = F2(
 				return model.creditCard;
 			}
 		}();
-		var labelIsAbove = A2(_lucamug$elm_style_framework$Framework_Form$hasFocus, model, _p6) || (!_elm_lang$core$Native_Utils.eq(modelValue, ''));
+		var labelIsAbove = A2(_puruzio$elm_style_framework$Framework_Form$hasFocus, model, _p6) || (!_elm_lang$core$Native_Utils.eq(modelValue, ''));
 		var lengthDifference = _elm_lang$core$String$length(_p7) - _elm_lang$core$String$length(modelValue);
 		var patternToShow = A2(
 			_elm_lang$core$Basics_ops['++'],
@@ -28207,13 +24361,13 @@ var _lucamug$elm_style_framework$Framework_Form$inputText = F2(
 						{
 							ctor: '::',
 							_0: _mdgriffith$stylish_elephants$Element_Font$color(
-								_lucamug$elm_style_framework$Framework_Color$color(_lucamug$elm_style_framework$Framework_Color$GrayLight)),
+								_puruzio$elm_style_framework$Framework_Color$color(_puruzio$elm_style_framework$Framework_Color$GrayLight)),
 							_1: {
 								ctor: '::',
 								_0: _mdgriffith$stylish_elephants$Element$moveDown(33),
 								_1: {
 									ctor: '::',
-									_0: A2(_lucamug$elm_style_framework$Framework_Form$hackInLineStyle, 'pointer-events', 'none'),
+									_0: A2(_puruzio$elm_style_framework$Framework_Form$hackInLineStyle, 'pointer-events', 'none'),
 									_1: {ctor: '[]'}
 								}
 							}
@@ -28229,15 +24383,15 @@ var _lucamug$elm_style_framework$Framework_Form$inputText = F2(
 					{
 						ctor: '::',
 						_0: _mdgriffith$stylish_elephants$Element_Events$onFocus(
-							_lucamug$elm_style_framework$Framework_Form$OnFocus(_p6)),
+							_puruzio$elm_style_framework$Framework_Form$OnFocus(_p6)),
 						_1: {
 							ctor: '::',
 							_0: _mdgriffith$stylish_elephants$Element_Events$onLoseFocus(
-								_lucamug$elm_style_framework$Framework_Form$OnLoseFocus(_p6)),
+								_puruzio$elm_style_framework$Framework_Form$OnLoseFocus(_p6)),
 							_1: {
 								ctor: '::',
 								_0: _mdgriffith$stylish_elephants$Element_Background$color(
-									_lucamug$elm_style_framework$Framework_Color$color(_lucamug$elm_style_framework$Framework_Color$Transparent)),
+									_puruzio$elm_style_framework$Framework_Color$color(_puruzio$elm_style_framework$Framework_Color$Transparent)),
 								_1: {
 									ctor: '::',
 									_0: _mdgriffith$stylish_elephants$Element_Border$widthEach(
@@ -28254,10 +24408,10 @@ var _lucamug$elm_style_framework$Framework_Form$inputText = F2(
 													_mdgriffith$stylish_elephants$Element$px(230)),
 												_1: {
 													ctor: '::',
-													_0: A2(_lucamug$elm_style_framework$Framework_Form$hackInLineStyle, 'transition', 'all 0.15s'),
+													_0: A2(_puruzio$elm_style_framework$Framework_Form$hackInLineStyle, 'transition', 'all 0.15s'),
 													_1: {
 														ctor: '::',
-														_0: A2(_lucamug$elm_style_framework$Framework_Form$hackInLineStyle, 'z-index', '10'),
+														_0: A2(_puruzio$elm_style_framework$Framework_Form$hackInLineStyle, 'z-index', '10'),
 														_1: {ctor: '[]'}
 													}
 												}
@@ -28268,10 +24422,10 @@ var _lucamug$elm_style_framework$Framework_Form$inputText = F2(
 							}
 						}
 					},
-					A2(_lucamug$elm_style_framework$Framework_Form$hasFocus, model, _p6) ? {
+					A2(_puruzio$elm_style_framework$Framework_Form$hasFocus, model, _p6) ? {
 						ctor: '::',
 						_0: _mdgriffith$stylish_elephants$Element_Border$color(
-							_lucamug$elm_style_framework$Framework_Color$color(_lucamug$elm_style_framework$Framework_Color$Primary)),
+							_puruzio$elm_style_framework$Framework_Color$color(_puruzio$elm_style_framework$Framework_Color$Primary)),
 						_1: {ctor: '[]'}
 					} : {ctor: '[]'}),
 				{
@@ -28281,13 +24435,13 @@ var _lucamug$elm_style_framework$Framework_Form$inputText = F2(
 							_elm_lang$core$Basics_ops['++'],
 							{
 								ctor: '::',
-								_0: A2(_lucamug$elm_style_framework$Framework_Form$hackInLineStyle, 'transition', 'all 0.15s'),
+								_0: A2(_puruzio$elm_style_framework$Framework_Form$hackInLineStyle, 'transition', 'all 0.15s'),
 								_1: {
 									ctor: '::',
-									_0: A2(_lucamug$elm_style_framework$Framework_Form$hackInLineStyle, 'z-index', '10'),
+									_0: A2(_puruzio$elm_style_framework$Framework_Form$hackInLineStyle, 'z-index', '10'),
 									_1: {
 										ctor: '::',
-										_0: A2(_lucamug$elm_style_framework$Framework_Form$hackInLineStyle, 'pointer-events', 'none'),
+										_0: A2(_puruzio$elm_style_framework$Framework_Form$hackInLineStyle, 'pointer-events', 'none'),
 										_1: {ctor: '[]'}
 									}
 								}
@@ -28307,61 +24461,61 @@ var _lucamug$elm_style_framework$Framework_Form$inputText = F2(
 							}),
 						_mdgriffith$stylish_elephants$Element$text(_p4.label)),
 					onChange: _elm_lang$core$Maybe$Just(
-						A2(_lucamug$elm_style_framework$Framework_Form$Input, _p6, _p7)),
+						A2(_puruzio$elm_style_framework$Framework_Form$Input, _p6, _p7)),
 					placeholder: _elm_lang$core$Maybe$Nothing,
 					text: modelValue
 				}));
 	});
-var _lucamug$elm_style_framework$Framework_Form$example1 = function (model) {
+var _puruzio$elm_style_framework$Framework_Form$example1 = function (model) {
 	return {
 		ctor: '_Tuple2',
 		_0: A2(
-			_lucamug$elm_style_framework$Framework_Form$inputText,
+			_puruzio$elm_style_framework$Framework_Form$inputText,
 			model,
-			{field: _lucamug$elm_style_framework$Framework_Form$FieldTelephone, pattern: '(000) 000 - 0000', label: 'Phone number USA'}),
+			{field: _puruzio$elm_style_framework$Framework_Form$FieldTelephone, pattern: '(000) 000 - 0000', label: 'Phone number USA'}),
 		_1: 'inputText model\n    { field = FieldTelephone\n    , pattern = \"(000) 000 - 0000\"\n    , label = \"Phone number USA\"\n    }'
 	};
 };
-var _lucamug$elm_style_framework$Framework_Form$example2 = function (model) {
+var _puruzio$elm_style_framework$Framework_Form$example2 = function (model) {
 	return {
 		ctor: '_Tuple2',
 		_0: A2(
-			_lucamug$elm_style_framework$Framework_Form$inputText,
+			_puruzio$elm_style_framework$Framework_Form$inputText,
 			model,
-			{field: _lucamug$elm_style_framework$Framework_Form$FieldCreditCard, pattern: '0000 - 0000 - 0000 - 0000', label: 'Credit Card number'}),
+			{field: _puruzio$elm_style_framework$Framework_Form$FieldCreditCard, pattern: '0000 - 0000 - 0000 - 0000', label: 'Credit Card number'}),
 		_1: 'inputText model\n    { field = FieldCreditCard\n    , pattern = \"0000 - 0000 - 0000 - 0000\"\n    , label = \"Credit Card number\"\n    }'
 	};
 };
-var _lucamug$elm_style_framework$Framework_Form$Button = {ctor: 'Button'};
-var _lucamug$elm_style_framework$Framework_Form$Radio = function (a) {
+var _puruzio$elm_style_framework$Framework_Form$Button = {ctor: 'Button'};
+var _puruzio$elm_style_framework$Framework_Form$Radio = function (a) {
 	return {ctor: 'Radio', _0: a};
 };
-var _lucamug$elm_style_framework$Framework_Form$Other = function (a) {
+var _puruzio$elm_style_framework$Framework_Form$Other = function (a) {
 	return {ctor: 'Other', _0: a};
 };
-var _lucamug$elm_style_framework$Framework_Form$Inputxxx = {ctor: 'Inputxxx'};
-var _lucamug$elm_style_framework$Framework_Form$tokenize = F2(
+var _puruzio$elm_style_framework$Framework_Form$Inputxxx = {ctor: 'Inputxxx'};
+var _puruzio$elm_style_framework$Framework_Form$tokenize = F2(
 	function (inputChar, pattern) {
-		return _elm_lang$core$Native_Utils.eq(pattern, inputChar) ? _lucamug$elm_style_framework$Framework_Form$Inputxxx : _lucamug$elm_style_framework$Framework_Form$Other(pattern);
+		return _elm_lang$core$Native_Utils.eq(pattern, inputChar) ? _puruzio$elm_style_framework$Framework_Form$Inputxxx : _puruzio$elm_style_framework$Framework_Form$Other(pattern);
 	});
-var _lucamug$elm_style_framework$Framework_Form$parse = F2(
+var _puruzio$elm_style_framework$Framework_Form$parse = F2(
 	function (inputChar, pattern) {
 		return A2(
 			_elm_lang$core$List$map,
-			_lucamug$elm_style_framework$Framework_Form$tokenize(inputChar),
+			_puruzio$elm_style_framework$Framework_Form$tokenize(inputChar),
 			_elm_lang$core$String$toList(pattern));
 	});
-var _lucamug$elm_style_framework$Framework_Form$result = F2(
+var _puruzio$elm_style_framework$Framework_Form$result = F2(
 	function (template, string) {
 		return A2(
-			_lucamug$elm_style_framework$Framework_Form$format,
+			_puruzio$elm_style_framework$Framework_Form$format,
 			A2(
-				_lucamug$elm_style_framework$Framework_Form$parse,
+				_puruzio$elm_style_framework$Framework_Form$parse,
 				_elm_lang$core$Native_Utils.chr('0'),
 				template),
 			string);
 	});
-var _lucamug$elm_style_framework$Framework_Form$update = F2(
+var _puruzio$elm_style_framework$Framework_Form$update = F2(
 	function (msg, model) {
 		var _p8 = A2(_elm_lang$core$Debug$log, 'Msg', msg);
 		switch (_p8.ctor) {
@@ -28386,7 +24540,7 @@ var _lucamug$elm_style_framework$Framework_Form$update = F2(
 						return '';
 					},
 					_p8._2);
-				var withPattern = A2(_lucamug$elm_style_framework$Framework_Form$result, _p8._1, onlyDigits);
+				var withPattern = A2(_puruzio$elm_style_framework$Framework_Form$result, _p8._1, onlyDigits);
 				var removeCharactedAtTheEndIfNotNumbers = A4(
 					_elm_lang$core$Regex$replace,
 					_elm_lang$core$Regex$All,
@@ -28440,7 +24594,44 @@ var _lucamug$elm_style_framework$Framework_Form$update = F2(
 		}
 	});
 
-var _lucamug$elm_style_framework$Framework_Icon$chevronDown = F2(
+var _puruzio$elm_style_framework$Framework_Icon$ic_search_black = function (size) {
+	return A2(
+		_elm_lang$svg$Svg$svg,
+		{
+			ctor: '::',
+			_0: _elm_lang$svg$Svg_Attributes$viewBox('0 0 256 256'),
+			_1: {
+				ctor: '::',
+				_0: _elm_lang$svg$Svg_Attributes$height(
+					_elm_lang$core$Basics$toString(size)),
+				_1: {ctor: '[]'}
+			}
+		},
+		{
+			ctor: '::',
+			_0: A2(
+				_elm_lang$svg$Svg$path,
+				{
+					ctor: '::',
+					_0: _elm_lang$svg$Svg_Attributes$d('M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z'),
+					_1: {ctor: '[]'}
+				},
+				{ctor: '[]'}),
+			_1: {
+				ctor: '::',
+				_0: A2(
+					_elm_lang$svg$Svg$path,
+					{
+						ctor: '::',
+						_0: _elm_lang$svg$Svg_Attributes$d('M0 0h24v24H0z'),
+						_1: {ctor: '[]'}
+					},
+					{ctor: '[]'}),
+				_1: {ctor: '[]'}
+			}
+		});
+};
+var _puruzio$elm_style_framework$Framework_Icon$chevronDown = F2(
 	function (size, color) {
 		return A2(
 			_elm_lang$svg$Svg$svg,
@@ -28467,7 +24658,7 @@ var _lucamug$elm_style_framework$Framework_Icon$chevronDown = F2(
 				_1: {ctor: '[]'}
 			});
 	});
-var _lucamug$elm_style_framework$Framework_Icon$mobileNotification = F2(
+var _puruzio$elm_style_framework$Framework_Icon$mobileNotification = F2(
 	function (size, color) {
 		return A2(
 			_elm_lang$svg$Svg$svg,
@@ -28528,7 +24719,7 @@ var _lucamug$elm_style_framework$Framework_Icon$mobileNotification = F2(
 				}
 			});
 	});
-var _lucamug$elm_style_framework$Framework_Icon$mobileRinging = F2(
+var _puruzio$elm_style_framework$Framework_Icon$mobileRinging = F2(
 	function (size, color) {
 		return A2(
 			_elm_lang$svg$Svg$svg,
@@ -28604,7 +24795,7 @@ var _lucamug$elm_style_framework$Framework_Icon$mobileRinging = F2(
 				}
 			});
 	});
-var _lucamug$elm_style_framework$Framework_Icon$mobileNotification2 = F2(
+var _puruzio$elm_style_framework$Framework_Icon$mobileNotification2 = F2(
 	function (size, color) {
 		return A2(
 			_elm_lang$svg$Svg$svg,
@@ -28650,7 +24841,7 @@ var _lucamug$elm_style_framework$Framework_Icon$mobileNotification2 = F2(
 				}
 			});
 	});
-var _lucamug$elm_style_framework$Framework_Icon$show = F2(
+var _puruzio$elm_style_framework$Framework_Icon$show = F2(
 	function (size, color) {
 		return A2(
 			_elm_lang$svg$Svg$svg,
@@ -28686,7 +24877,7 @@ var _lucamug$elm_style_framework$Framework_Icon$show = F2(
 				_1: {ctor: '[]'}
 			});
 	});
-var _lucamug$elm_style_framework$Framework_Icon$hide = F2(
+var _puruzio$elm_style_framework$Framework_Icon$hide = F2(
 	function (size, color) {
 		return A2(
 			_elm_lang$svg$Svg$svg,
@@ -28722,7 +24913,7 @@ var _lucamug$elm_style_framework$Framework_Icon$hide = F2(
 				_1: {ctor: '[]'}
 			});
 	});
-var _lucamug$elm_style_framework$Framework_Icon$fullscreen = function (size) {
+var _puruzio$elm_style_framework$Framework_Icon$fullscreen = function (size) {
 	return A2(
 		_elm_lang$svg$Svg$svg,
 		{
@@ -28759,7 +24950,7 @@ var _lucamug$elm_style_framework$Framework_Icon$fullscreen = function (size) {
 			_1: {ctor: '[]'}
 		});
 };
-var _lucamug$elm_style_framework$Framework_Icon$exitFullscreen = function (size) {
+var _puruzio$elm_style_framework$Framework_Icon$exitFullscreen = function (size) {
 	return A2(
 		_elm_lang$svg$Svg$svg,
 		{
@@ -28800,7 +24991,7 @@ var _lucamug$elm_style_framework$Framework_Icon$exitFullscreen = function (size)
 			_1: {ctor: '[]'}
 		});
 };
-var _lucamug$elm_style_framework$Framework_Icon$pencil = function (size) {
+var _puruzio$elm_style_framework$Framework_Icon$pencil = function (size) {
 	return A2(
 		_elm_lang$svg$Svg$svg,
 		{
@@ -28837,7 +25028,7 @@ var _lucamug$elm_style_framework$Framework_Icon$pencil = function (size) {
 			_1: {ctor: '[]'}
 		});
 };
-var _lucamug$elm_style_framework$Framework_Icon$points = function (size) {
+var _puruzio$elm_style_framework$Framework_Icon$points = function (size) {
 	return A2(
 		_elm_lang$svg$Svg$svg,
 		{
@@ -28893,7 +25084,7 @@ var _lucamug$elm_style_framework$Framework_Icon$points = function (size) {
 			}
 		});
 };
-var _lucamug$elm_style_framework$Framework_Icon$home = function (size) {
+var _puruzio$elm_style_framework$Framework_Icon$home = function (size) {
 	return A2(
 		_elm_lang$svg$Svg$svg,
 		{
@@ -28938,38 +25129,40 @@ var _lucamug$elm_style_framework$Framework_Icon$home = function (size) {
 			_1: {ctor: '[]'}
 		});
 };
-var _lucamug$elm_style_framework$Framework_Icon$icon = F2(
+var _puruzio$elm_style_framework$Framework_Icon$icon = F2(
 	function (logo, size) {
 		return _mdgriffith$stylish_elephants$Element$html(
 			function () {
 				var _p0 = logo;
 				switch (_p0.ctor) {
 					case 'Points':
-						return _lucamug$elm_style_framework$Framework_Icon$points(size);
+						return _puruzio$elm_style_framework$Framework_Icon$points(size);
 					case 'Hide':
-						return A2(_lucamug$elm_style_framework$Framework_Icon$hide, size, '#999');
+						return A2(_puruzio$elm_style_framework$Framework_Icon$hide, size, '#999');
 					case 'Show':
-						return A2(_lucamug$elm_style_framework$Framework_Icon$show, size, '#999');
+						return A2(_puruzio$elm_style_framework$Framework_Icon$show, size, '#999');
 					case 'MobileRinging':
-						return A2(_lucamug$elm_style_framework$Framework_Icon$mobileRinging, size, '#999');
+						return A2(_puruzio$elm_style_framework$Framework_Icon$mobileRinging, size, '#999');
 					case 'MobileNotification':
-						return A2(_lucamug$elm_style_framework$Framework_Icon$mobileNotification, size, '#999');
+						return A2(_puruzio$elm_style_framework$Framework_Icon$mobileNotification, size, '#999');
 					case 'MobileNotification2':
-						return A2(_lucamug$elm_style_framework$Framework_Icon$mobileNotification2, size, '#999');
+						return A2(_puruzio$elm_style_framework$Framework_Icon$mobileNotification2, size, '#999');
 					case 'Home':
-						return _lucamug$elm_style_framework$Framework_Icon$home(size);
+						return _puruzio$elm_style_framework$Framework_Icon$home(size);
 					case 'Pencil':
-						return _lucamug$elm_style_framework$Framework_Icon$pencil(size);
+						return _puruzio$elm_style_framework$Framework_Icon$pencil(size);
 					case 'ExitFullscreen':
-						return _lucamug$elm_style_framework$Framework_Icon$exitFullscreen(size);
+						return _puruzio$elm_style_framework$Framework_Icon$exitFullscreen(size);
 					case 'Fullscreen':
-						return _lucamug$elm_style_framework$Framework_Icon$fullscreen(size);
+						return _puruzio$elm_style_framework$Framework_Icon$fullscreen(size);
+					case 'ChevronDown':
+						return A2(_puruzio$elm_style_framework$Framework_Icon$chevronDown, size, '#333');
 					default:
-						return A2(_lucamug$elm_style_framework$Framework_Icon$chevronDown, size, '#333');
+						return _puruzio$elm_style_framework$Framework_Icon$ic_search_black(size);
 				}
 			}());
 	});
-var _lucamug$elm_style_framework$Framework_Icon$usageWrapper = function (item) {
+var _puruzio$elm_style_framework$Framework_Icon$usageWrapper = function (item) {
 	return A2(
 		_mdgriffith$stylish_elephants$Element$el,
 		{
@@ -28988,23 +25181,24 @@ var _lucamug$elm_style_framework$Framework_Icon$usageWrapper = function (item) {
 		},
 		item);
 };
-var _lucamug$elm_style_framework$Framework_Icon$ChevronDown = {ctor: 'ChevronDown'};
-var _lucamug$elm_style_framework$Framework_Icon$MobileNotification2 = {ctor: 'MobileNotification2'};
-var _lucamug$elm_style_framework$Framework_Icon$MobileNotification = {ctor: 'MobileNotification'};
-var _lucamug$elm_style_framework$Framework_Icon$MobileRinging = {ctor: 'MobileRinging'};
-var _lucamug$elm_style_framework$Framework_Icon$Show = {ctor: 'Show'};
-var _lucamug$elm_style_framework$Framework_Icon$Hide = {ctor: 'Hide'};
-var _lucamug$elm_style_framework$Framework_Icon$Home = {ctor: 'Home'};
-var _lucamug$elm_style_framework$Framework_Icon$Points = {ctor: 'Points'};
-var _lucamug$elm_style_framework$Framework_Icon$Fullscreen = {ctor: 'Fullscreen'};
-var _lucamug$elm_style_framework$Framework_Icon$ExitFullscreen = {ctor: 'ExitFullscreen'};
-var _lucamug$elm_style_framework$Framework_Icon$Pencil = {ctor: 'Pencil'};
-var _lucamug$elm_style_framework$Framework_Icon$introspection = {
+var _puruzio$elm_style_framework$Framework_Icon$Ic_search_black = {ctor: 'Ic_search_black'};
+var _puruzio$elm_style_framework$Framework_Icon$ChevronDown = {ctor: 'ChevronDown'};
+var _puruzio$elm_style_framework$Framework_Icon$MobileNotification2 = {ctor: 'MobileNotification2'};
+var _puruzio$elm_style_framework$Framework_Icon$MobileNotification = {ctor: 'MobileNotification'};
+var _puruzio$elm_style_framework$Framework_Icon$MobileRinging = {ctor: 'MobileRinging'};
+var _puruzio$elm_style_framework$Framework_Icon$Show = {ctor: 'Show'};
+var _puruzio$elm_style_framework$Framework_Icon$Hide = {ctor: 'Hide'};
+var _puruzio$elm_style_framework$Framework_Icon$Home = {ctor: 'Home'};
+var _puruzio$elm_style_framework$Framework_Icon$Points = {ctor: 'Points'};
+var _puruzio$elm_style_framework$Framework_Icon$Fullscreen = {ctor: 'Fullscreen'};
+var _puruzio$elm_style_framework$Framework_Icon$ExitFullscreen = {ctor: 'ExitFullscreen'};
+var _puruzio$elm_style_framework$Framework_Icon$Pencil = {ctor: 'Pencil'};
+var _puruzio$elm_style_framework$Framework_Icon$introspection = {
 	name: 'Icons',
 	signature: 'logo : Logo -> Int -> Color.Color -> Element.Element msg',
 	description: 'List of SVG icons',
 	usage: 'icon Pencil 32',
-	usageResult: A2(_lucamug$elm_style_framework$Framework_Icon$icon, _lucamug$elm_style_framework$Framework_Icon$Pencil, 32),
+	usageResult: A2(_puruzio$elm_style_framework$Framework_Icon$icon, _puruzio$elm_style_framework$Framework_Icon$Pencil, 32),
 	boxed: true,
 	variations: {
 		ctor: '::',
@@ -29015,80 +25209,88 @@ var _lucamug$elm_style_framework$Framework_Icon$introspection = {
 				ctor: '::',
 				_0: {
 					ctor: '_Tuple2',
-					_0: A2(_lucamug$elm_style_framework$Framework_Icon$icon, _lucamug$elm_style_framework$Framework_Icon$Pencil, 32),
+					_0: A2(_puruzio$elm_style_framework$Framework_Icon$icon, _puruzio$elm_style_framework$Framework_Icon$Pencil, 32),
 					_1: 'icon Pencil 32'
 				},
 				_1: {
 					ctor: '::',
 					_0: {
 						ctor: '_Tuple2',
-						_0: A2(_lucamug$elm_style_framework$Framework_Icon$icon, _lucamug$elm_style_framework$Framework_Icon$ExitFullscreen, 32),
+						_0: A2(_puruzio$elm_style_framework$Framework_Icon$icon, _puruzio$elm_style_framework$Framework_Icon$ExitFullscreen, 32),
 						_1: 'icon ExitFullscreen 32'
 					},
 					_1: {
 						ctor: '::',
 						_0: {
 							ctor: '_Tuple2',
-							_0: A2(_lucamug$elm_style_framework$Framework_Icon$icon, _lucamug$elm_style_framework$Framework_Icon$Fullscreen, 32),
+							_0: A2(_puruzio$elm_style_framework$Framework_Icon$icon, _puruzio$elm_style_framework$Framework_Icon$Fullscreen, 32),
 							_1: 'icon Fullscreen 32'
 						},
 						_1: {
 							ctor: '::',
 							_0: {
 								ctor: '_Tuple2',
-								_0: A2(_lucamug$elm_style_framework$Framework_Icon$icon, _lucamug$elm_style_framework$Framework_Icon$Points, 32),
+								_0: A2(_puruzio$elm_style_framework$Framework_Icon$icon, _puruzio$elm_style_framework$Framework_Icon$Points, 32),
 								_1: 'icon Points 32'
 							},
 							_1: {
 								ctor: '::',
 								_0: {
 									ctor: '_Tuple2',
-									_0: A2(_lucamug$elm_style_framework$Framework_Icon$icon, _lucamug$elm_style_framework$Framework_Icon$Home, 32),
+									_0: A2(_puruzio$elm_style_framework$Framework_Icon$icon, _puruzio$elm_style_framework$Framework_Icon$Home, 32),
 									_1: 'icon Home 32'
 								},
 								_1: {
 									ctor: '::',
 									_0: {
 										ctor: '_Tuple2',
-										_0: A2(_lucamug$elm_style_framework$Framework_Icon$icon, _lucamug$elm_style_framework$Framework_Icon$Hide, 32),
+										_0: A2(_puruzio$elm_style_framework$Framework_Icon$icon, _puruzio$elm_style_framework$Framework_Icon$Hide, 32),
 										_1: 'icon Hide 32'
 									},
 									_1: {
 										ctor: '::',
 										_0: {
 											ctor: '_Tuple2',
-											_0: A2(_lucamug$elm_style_framework$Framework_Icon$icon, _lucamug$elm_style_framework$Framework_Icon$Show, 32),
+											_0: A2(_puruzio$elm_style_framework$Framework_Icon$icon, _puruzio$elm_style_framework$Framework_Icon$Show, 32),
 											_1: 'icon Hide 32'
 										},
 										_1: {
 											ctor: '::',
 											_0: {
 												ctor: '_Tuple2',
-												_0: A2(_lucamug$elm_style_framework$Framework_Icon$icon, _lucamug$elm_style_framework$Framework_Icon$MobileRinging, 32),
+												_0: A2(_puruzio$elm_style_framework$Framework_Icon$icon, _puruzio$elm_style_framework$Framework_Icon$MobileRinging, 32),
 												_1: 'icon MobileRinging 32'
 											},
 											_1: {
 												ctor: '::',
 												_0: {
 													ctor: '_Tuple2',
-													_0: A2(_lucamug$elm_style_framework$Framework_Icon$icon, _lucamug$elm_style_framework$Framework_Icon$MobileNotification, 32),
+													_0: A2(_puruzio$elm_style_framework$Framework_Icon$icon, _puruzio$elm_style_framework$Framework_Icon$MobileNotification, 32),
 													_1: 'icon MobileNotification 32'
 												},
 												_1: {
 													ctor: '::',
 													_0: {
 														ctor: '_Tuple2',
-														_0: A2(_lucamug$elm_style_framework$Framework_Icon$icon, _lucamug$elm_style_framework$Framework_Icon$MobileNotification2, 32),
+														_0: A2(_puruzio$elm_style_framework$Framework_Icon$icon, _puruzio$elm_style_framework$Framework_Icon$MobileNotification2, 32),
 														_1: 'icon MobileNotification2 32'
 													},
 													_1: {
 														ctor: '::',
 														_0: {
 															ctor: '_Tuple2',
-															_0: A2(_lucamug$elm_style_framework$Framework_Icon$icon, _lucamug$elm_style_framework$Framework_Icon$ChevronDown, 32),
+															_0: A2(_puruzio$elm_style_framework$Framework_Icon$icon, _puruzio$elm_style_framework$Framework_Icon$ChevronDown, 32),
 															_1: 'icon ChevronDown 32'
 														},
-														_1: {ctor: '[]'}
+														_1: {
+															ctor: '::',
+															_0: {
+																ctor: '_Tuple2',
+																_0: A2(_puruzio$elm_style_framework$Framework_Icon$icon, _puruzio$elm_style_framework$Framework_Icon$Ic_search_black, 32),
+																_1: 'icon Ic_search_black 32'
+															},
+															_1: {ctor: '[]'}
+														}
 													}
 												}
 											}
@@ -29105,7 +25307,7 @@ var _lucamug$elm_style_framework$Framework_Icon$introspection = {
 	}
 };
 
-var _lucamug$elm_style_framework$Framework_Logo$logoLucamug = function (height) {
+var _puruzio$elm_style_framework$Framework_Logo$logoLucamug = function (height) {
 	return A2(
 		_elm_lang$svg$Svg$svg,
 		{
@@ -29195,7 +25397,7 @@ var _lucamug$elm_style_framework$Framework_Logo$logoLucamug = function (height) 
 			}
 		});
 };
-var _lucamug$elm_style_framework$Framework_Logo$cssRgb = function (color) {
+var _puruzio$elm_style_framework$Framework_Logo$cssRgb = function (color) {
 	var _p0 = color;
 	switch (_p0.ctor) {
 		case 'Orange':
@@ -29212,8 +25414,8 @@ var _lucamug$elm_style_framework$Framework_Logo$cssRgb = function (color) {
 			return '#000';
 	}
 };
-var _lucamug$elm_style_framework$Framework_Logo$ratio = 1;
-var _lucamug$elm_style_framework$Framework_Logo$usageWrapper = function (item) {
+var _puruzio$elm_style_framework$Framework_Logo$ratio = 1;
+var _puruzio$elm_style_framework$Framework_Logo$usageWrapper = function (item) {
 	return A2(
 		_mdgriffith$stylish_elephants$Element$el,
 		{
@@ -29232,38 +25434,38 @@ var _lucamug$elm_style_framework$Framework_Logo$usageWrapper = function (item) {
 		},
 		item);
 };
-var _lucamug$elm_style_framework$Framework_Logo$LogoLucamug = {ctor: 'LogoLucamug'};
-var _lucamug$elm_style_framework$Framework_Logo$LogoElm = function (a) {
+var _puruzio$elm_style_framework$Framework_Logo$LogoLucamug = {ctor: 'LogoLucamug'};
+var _puruzio$elm_style_framework$Framework_Logo$LogoElm = function (a) {
 	return {ctor: 'LogoElm', _0: a};
 };
-var _lucamug$elm_style_framework$Framework_Logo$ElmColorful = {ctor: 'ElmColorful'};
-var _lucamug$elm_style_framework$Framework_Logo$ElmColor = function (a) {
+var _puruzio$elm_style_framework$Framework_Logo$ElmColorful = {ctor: 'ElmColorful'};
+var _puruzio$elm_style_framework$Framework_Logo$ElmColor = function (a) {
 	return {ctor: 'ElmColor', _0: a};
 };
-var _lucamug$elm_style_framework$Framework_Logo$Black = {ctor: 'Black'};
-var _lucamug$elm_style_framework$Framework_Logo$White = {ctor: 'White'};
-var _lucamug$elm_style_framework$Framework_Logo$Blue = {ctor: 'Blue'};
-var _lucamug$elm_style_framework$Framework_Logo$LightBlue = {ctor: 'LightBlue'};
-var _lucamug$elm_style_framework$Framework_Logo$Green = {ctor: 'Green'};
-var _lucamug$elm_style_framework$Framework_Logo$Orange = {ctor: 'Orange'};
-var _lucamug$elm_style_framework$Framework_Logo$elmLogo = F2(
+var _puruzio$elm_style_framework$Framework_Logo$Black = {ctor: 'Black'};
+var _puruzio$elm_style_framework$Framework_Logo$White = {ctor: 'White'};
+var _puruzio$elm_style_framework$Framework_Logo$Blue = {ctor: 'Blue'};
+var _puruzio$elm_style_framework$Framework_Logo$LightBlue = {ctor: 'LightBlue'};
+var _puruzio$elm_style_framework$Framework_Logo$Green = {ctor: 'Green'};
+var _puruzio$elm_style_framework$Framework_Logo$Orange = {ctor: 'Orange'};
+var _puruzio$elm_style_framework$Framework_Logo$elmLogo = F2(
 	function (type_, height) {
 		var c = function () {
 			var _p1 = type_;
 			if (_p1.ctor === 'ElmColorful') {
 				return {
-					c1: _lucamug$elm_style_framework$Framework_Logo$cssRgb(_lucamug$elm_style_framework$Framework_Logo$Orange),
-					c2: _lucamug$elm_style_framework$Framework_Logo$cssRgb(_lucamug$elm_style_framework$Framework_Logo$Green),
-					c3: _lucamug$elm_style_framework$Framework_Logo$cssRgb(_lucamug$elm_style_framework$Framework_Logo$LightBlue),
-					c4: _lucamug$elm_style_framework$Framework_Logo$cssRgb(_lucamug$elm_style_framework$Framework_Logo$Blue)
+					c1: _puruzio$elm_style_framework$Framework_Logo$cssRgb(_puruzio$elm_style_framework$Framework_Logo$Orange),
+					c2: _puruzio$elm_style_framework$Framework_Logo$cssRgb(_puruzio$elm_style_framework$Framework_Logo$Green),
+					c3: _puruzio$elm_style_framework$Framework_Logo$cssRgb(_puruzio$elm_style_framework$Framework_Logo$LightBlue),
+					c4: _puruzio$elm_style_framework$Framework_Logo$cssRgb(_puruzio$elm_style_framework$Framework_Logo$Blue)
 				};
 			} else {
 				var _p2 = _p1._0;
 				return {
-					c1: _lucamug$elm_style_framework$Framework_Logo$cssRgb(_p2),
-					c2: _lucamug$elm_style_framework$Framework_Logo$cssRgb(_p2),
-					c3: _lucamug$elm_style_framework$Framework_Logo$cssRgb(_p2),
-					c4: _lucamug$elm_style_framework$Framework_Logo$cssRgb(_p2)
+					c1: _puruzio$elm_style_framework$Framework_Logo$cssRgb(_p2),
+					c2: _puruzio$elm_style_framework$Framework_Logo$cssRgb(_p2),
+					c3: _puruzio$elm_style_framework$Framework_Logo$cssRgb(_p2),
+					c4: _puruzio$elm_style_framework$Framework_Logo$cssRgb(_p2)
 				};
 			}
 		}();
@@ -29287,7 +25489,7 @@ var _lucamug$elm_style_framework$Framework_Logo$elmLogo = F2(
 							_0: _elm_lang$svg$Svg_Attributes$width(
 								_elm_lang$core$Basics$toString(
 									_elm_lang$core$Basics$floor(
-										_elm_lang$core$Basics$toFloat(height) * _lucamug$elm_style_framework$Framework_Logo$ratio))),
+										_elm_lang$core$Basics$toFloat(height) * _puruzio$elm_style_framework$Framework_Logo$ratio))),
 							_1: {ctor: '[]'}
 						}
 					}
@@ -29355,26 +25557,26 @@ var _lucamug$elm_style_framework$Framework_Logo$elmLogo = F2(
 				}
 			});
 	});
-var _lucamug$elm_style_framework$Framework_Logo$logo = F2(
+var _puruzio$elm_style_framework$Framework_Logo$logo = F2(
 	function (logo, size) {
 		return _mdgriffith$stylish_elephants$Element$html(
 			function () {
 				var _p3 = logo;
 				if (_p3.ctor === 'LogoLucamug') {
-					return _lucamug$elm_style_framework$Framework_Logo$logoLucamug(size);
+					return _puruzio$elm_style_framework$Framework_Logo$logoLucamug(size);
 				} else {
-					return A2(_lucamug$elm_style_framework$Framework_Logo$elmLogo, _p3._0, size);
+					return A2(_puruzio$elm_style_framework$Framework_Logo$elmLogo, _p3._0, size);
 				}
 			}());
 	});
-var _lucamug$elm_style_framework$Framework_Logo$introspection = {
+var _puruzio$elm_style_framework$Framework_Logo$introspection = {
 	name: 'Logos',
 	signature: 'logo : Logo -> Int -> Color.Color -> Element.Element msg',
 	description: 'List of SVG logos',
 	usage: 'logo ElmColorful 48',
 	usageResult: A2(
-		_lucamug$elm_style_framework$Framework_Logo$logo,
-		_lucamug$elm_style_framework$Framework_Logo$LogoElm(_lucamug$elm_style_framework$Framework_Logo$ElmColorful),
+		_puruzio$elm_style_framework$Framework_Logo$logo,
+		_puruzio$elm_style_framework$Framework_Logo$LogoElm(_puruzio$elm_style_framework$Framework_Logo$ElmColorful),
 		48),
 	boxed: true,
 	variations: {
@@ -29387,8 +25589,8 @@ var _lucamug$elm_style_framework$Framework_Logo$introspection = {
 				_0: {
 					ctor: '_Tuple2',
 					_0: A2(
-						_lucamug$elm_style_framework$Framework_Logo$logo,
-						_lucamug$elm_style_framework$Framework_Logo$LogoElm(_lucamug$elm_style_framework$Framework_Logo$ElmColorful),
+						_puruzio$elm_style_framework$Framework_Logo$logo,
+						_puruzio$elm_style_framework$Framework_Logo$LogoElm(_puruzio$elm_style_framework$Framework_Logo$ElmColorful),
 						100),
 					_1: 'logo (LogoElm <| ElmColorful) 100'
 				},
@@ -29397,9 +25599,9 @@ var _lucamug$elm_style_framework$Framework_Logo$introspection = {
 					_0: {
 						ctor: '_Tuple2',
 						_0: A2(
-							_lucamug$elm_style_framework$Framework_Logo$logo,
-							_lucamug$elm_style_framework$Framework_Logo$LogoElm(
-								_lucamug$elm_style_framework$Framework_Logo$ElmColor(_lucamug$elm_style_framework$Framework_Logo$Orange)),
+							_puruzio$elm_style_framework$Framework_Logo$logo,
+							_puruzio$elm_style_framework$Framework_Logo$LogoElm(
+								_puruzio$elm_style_framework$Framework_Logo$ElmColor(_puruzio$elm_style_framework$Framework_Logo$Orange)),
 							100),
 						_1: 'logo (LogoElm <| (ElmColor Orange) 100'
 					},
@@ -29408,9 +25610,9 @@ var _lucamug$elm_style_framework$Framework_Logo$introspection = {
 						_0: {
 							ctor: '_Tuple2',
 							_0: A2(
-								_lucamug$elm_style_framework$Framework_Logo$logo,
-								_lucamug$elm_style_framework$Framework_Logo$LogoElm(
-									_lucamug$elm_style_framework$Framework_Logo$ElmColor(_lucamug$elm_style_framework$Framework_Logo$Green)),
+								_puruzio$elm_style_framework$Framework_Logo$logo,
+								_puruzio$elm_style_framework$Framework_Logo$LogoElm(
+									_puruzio$elm_style_framework$Framework_Logo$ElmColor(_puruzio$elm_style_framework$Framework_Logo$Green)),
 								100),
 							_1: 'logo (LogoElm <| (ElmColor Green) 100'
 						},
@@ -29419,9 +25621,9 @@ var _lucamug$elm_style_framework$Framework_Logo$introspection = {
 							_0: {
 								ctor: '_Tuple2',
 								_0: A2(
-									_lucamug$elm_style_framework$Framework_Logo$logo,
-									_lucamug$elm_style_framework$Framework_Logo$LogoElm(
-										_lucamug$elm_style_framework$Framework_Logo$ElmColor(_lucamug$elm_style_framework$Framework_Logo$LightBlue)),
+									_puruzio$elm_style_framework$Framework_Logo$logo,
+									_puruzio$elm_style_framework$Framework_Logo$LogoElm(
+										_puruzio$elm_style_framework$Framework_Logo$ElmColor(_puruzio$elm_style_framework$Framework_Logo$LightBlue)),
 									100),
 								_1: 'logo (LogoElm <| (ElmColor LightBlue) 100'
 							},
@@ -29430,9 +25632,9 @@ var _lucamug$elm_style_framework$Framework_Logo$introspection = {
 								_0: {
 									ctor: '_Tuple2',
 									_0: A2(
-										_lucamug$elm_style_framework$Framework_Logo$logo,
-										_lucamug$elm_style_framework$Framework_Logo$LogoElm(
-											_lucamug$elm_style_framework$Framework_Logo$ElmColor(_lucamug$elm_style_framework$Framework_Logo$Blue)),
+										_puruzio$elm_style_framework$Framework_Logo$logo,
+										_puruzio$elm_style_framework$Framework_Logo$LogoElm(
+											_puruzio$elm_style_framework$Framework_Logo$ElmColor(_puruzio$elm_style_framework$Framework_Logo$Blue)),
 										100),
 									_1: 'logo (LogoElm <| (ElmColor Blue) 100'
 								},
@@ -29441,9 +25643,9 @@ var _lucamug$elm_style_framework$Framework_Logo$introspection = {
 									_0: {
 										ctor: '_Tuple2',
 										_0: A2(
-											_lucamug$elm_style_framework$Framework_Logo$logo,
-											_lucamug$elm_style_framework$Framework_Logo$LogoElm(
-												_lucamug$elm_style_framework$Framework_Logo$ElmColor(_lucamug$elm_style_framework$Framework_Logo$White)),
+											_puruzio$elm_style_framework$Framework_Logo$logo,
+											_puruzio$elm_style_framework$Framework_Logo$LogoElm(
+												_puruzio$elm_style_framework$Framework_Logo$ElmColor(_puruzio$elm_style_framework$Framework_Logo$White)),
 											100),
 										_1: 'logo (LogoElm <| (ElmColor White) 100'
 									},
@@ -29452,9 +25654,9 @@ var _lucamug$elm_style_framework$Framework_Logo$introspection = {
 										_0: {
 											ctor: '_Tuple2',
 											_0: A2(
-												_lucamug$elm_style_framework$Framework_Logo$logo,
-												_lucamug$elm_style_framework$Framework_Logo$LogoElm(
-													_lucamug$elm_style_framework$Framework_Logo$ElmColor(_lucamug$elm_style_framework$Framework_Logo$Black)),
+												_puruzio$elm_style_framework$Framework_Logo$logo,
+												_puruzio$elm_style_framework$Framework_Logo$LogoElm(
+													_puruzio$elm_style_framework$Framework_Logo$ElmColor(_puruzio$elm_style_framework$Framework_Logo$Black)),
 												100),
 											_1: 'logo (LogoElm <| (ElmColor Black) 100'
 										},
@@ -29462,7 +25664,7 @@ var _lucamug$elm_style_framework$Framework_Logo$introspection = {
 											ctor: '::',
 											_0: {
 												ctor: '_Tuple2',
-												_0: A2(_lucamug$elm_style_framework$Framework_Logo$logo, _lucamug$elm_style_framework$Framework_Logo$LogoLucamug, 100),
+												_0: A2(_puruzio$elm_style_framework$Framework_Logo$logo, _puruzio$elm_style_framework$Framework_Logo$LogoLucamug, 100),
 												_1: 'logo Lucamug 100'
 											},
 											_1: {ctor: '[]'}
@@ -29479,7 +25681,7 @@ var _lucamug$elm_style_framework$Framework_Logo$introspection = {
 	}
 };
 
-var _lucamug$elm_style_framework$Framework_StyleElements$introspection = {
+var _puruzio$elm_style_framework$Framework_StyleElements$introspection = {
 	name: 'Style-Elements',
 	signature: '',
 	description: 'This is a raw list of all elements of style-elements as they are',
@@ -29661,7 +25863,7 @@ var _lucamug$elm_style_framework$Framework_StyleElements$introspection = {
 	}
 };
 
-var _lucamug$elm_style_framework$Framework_StyleElementsInput$introspection = {
+var _puruzio$elm_style_framework$Framework_StyleElementsInput$introspection = {
 	name: 'Style-Elements Input',
 	signature: '',
 	description: 'This is a raw list of all elements of style-elements as they are',
@@ -29862,12 +26064,12 @@ var _lucamug$elm_style_framework$Framework_StyleElementsInput$introspection = {
 		}
 	}
 };
-var _lucamug$elm_style_framework$Framework_StyleElementsInput$initModel = {
+var _puruzio$elm_style_framework$Framework_StyleElementsInput$initModel = {
 	radio: _elm_lang$core$Maybe$Just('A'),
 	text: '',
 	checkbox: false
 };
-var _lucamug$elm_style_framework$Framework_StyleElementsInput$update = F2(
+var _puruzio$elm_style_framework$Framework_StyleElementsInput$update = F2(
 	function (msg, model) {
 		var _p0 = A2(_elm_lang$core$Debug$log, 'Msg', msg);
 		switch (_p0.ctor) {
@@ -29901,14 +26103,14 @@ var _lucamug$elm_style_framework$Framework_StyleElementsInput$update = F2(
 				};
 		}
 	});
-var _lucamug$elm_style_framework$Framework_StyleElementsInput$Model = F3(
+var _puruzio$elm_style_framework$Framework_StyleElementsInput$Model = F3(
 	function (a, b, c) {
 		return {radio: a, text: b, checkbox: c};
 	});
-var _lucamug$elm_style_framework$Framework_StyleElementsInput$Checkbox = function (a) {
+var _puruzio$elm_style_framework$Framework_StyleElementsInput$Checkbox = function (a) {
 	return {ctor: 'Checkbox', _0: a};
 };
-var _lucamug$elm_style_framework$Framework_StyleElementsInput$example2 = function (model) {
+var _puruzio$elm_style_framework$Framework_StyleElementsInput$example2 = function (model) {
 	return {
 		ctor: '_Tuple2',
 		_0: A2(
@@ -29919,17 +26121,17 @@ var _lucamug$elm_style_framework$Framework_StyleElementsInput$example2 = functio
 					_mdgriffith$stylish_elephants$Element_Input$labelAbove,
 					{ctor: '[]'},
 					_mdgriffith$stylish_elephants$Element$text('Label')),
-				onChange: _elm_lang$core$Maybe$Just(_lucamug$elm_style_framework$Framework_StyleElementsInput$Checkbox),
+				onChange: _elm_lang$core$Maybe$Just(_puruzio$elm_style_framework$Framework_StyleElementsInput$Checkbox),
 				checked: model.checkbox,
 				icon: _elm_lang$core$Maybe$Nothing
 			}),
 		_1: 'Input.checkbox []\n    { label = Input.labelAbove [] <| text \"Label\"\n    , onChange = Just Checkbox\n    , checked = model.checkbox\n    , icon = Nothing\n    }'
 	};
 };
-var _lucamug$elm_style_framework$Framework_StyleElementsInput$Input = function (a) {
+var _puruzio$elm_style_framework$Framework_StyleElementsInput$Input = function (a) {
 	return {ctor: 'Input', _0: a};
 };
-var _lucamug$elm_style_framework$Framework_StyleElementsInput$example1 = function (model) {
+var _puruzio$elm_style_framework$Framework_StyleElementsInput$example1 = function (model) {
 	return {
 		ctor: '_Tuple2',
 		_0: A2(
@@ -29940,14 +26142,14 @@ var _lucamug$elm_style_framework$Framework_StyleElementsInput$example1 = functio
 					_mdgriffith$stylish_elephants$Element_Input$labelAbove,
 					{ctor: '[]'},
 					_mdgriffith$stylish_elephants$Element$text('Label')),
-				onChange: _elm_lang$core$Maybe$Just(_lucamug$elm_style_framework$Framework_StyleElementsInput$Input),
+				onChange: _elm_lang$core$Maybe$Just(_puruzio$elm_style_framework$Framework_StyleElementsInput$Input),
 				placeholder: _elm_lang$core$Maybe$Nothing,
 				text: model.text
 			}),
 		_1: 'Input.text []\n    { label = Input.labelAbove [] <| text \"Label\"\n    , onChange = Just Input\n    , placeholder = Nothing\n    , text = model.text\n    }'
 	};
 };
-var _lucamug$elm_style_framework$Framework_StyleElementsInput$example5 = function (model) {
+var _puruzio$elm_style_framework$Framework_StyleElementsInput$example5 = function (model) {
 	return {
 		ctor: '_Tuple2',
 		_0: A2(
@@ -29958,14 +26160,14 @@ var _lucamug$elm_style_framework$Framework_StyleElementsInput$example5 = functio
 					_mdgriffith$stylish_elephants$Element_Input$labelAbove,
 					{ctor: '[]'},
 					_mdgriffith$stylish_elephants$Element$text('Label')),
-				onChange: _elm_lang$core$Maybe$Just(_lucamug$elm_style_framework$Framework_StyleElementsInput$Input),
+				onChange: _elm_lang$core$Maybe$Just(_puruzio$elm_style_framework$Framework_StyleElementsInput$Input),
 				placeholder: _elm_lang$core$Maybe$Nothing,
 				text: model.text
 			}),
 		_1: 'Input.username []\n    { label = Input.labelAbove [] <| text \"Label\"\n    , onChange = Just Input\n    , placeholder = Nothing\n    , text = model.text\n    }'
 	};
 };
-var _lucamug$elm_style_framework$Framework_StyleElementsInput$example6 = function (model) {
+var _puruzio$elm_style_framework$Framework_StyleElementsInput$example6 = function (model) {
 	return {
 		ctor: '_Tuple2',
 		_0: A2(
@@ -29976,7 +26178,7 @@ var _lucamug$elm_style_framework$Framework_StyleElementsInput$example6 = functio
 					_mdgriffith$stylish_elephants$Element_Input$labelAbove,
 					{ctor: '[]'},
 					_mdgriffith$stylish_elephants$Element$text('Label')),
-				onChange: _elm_lang$core$Maybe$Just(_lucamug$elm_style_framework$Framework_StyleElementsInput$Input),
+				onChange: _elm_lang$core$Maybe$Just(_puruzio$elm_style_framework$Framework_StyleElementsInput$Input),
 				placeholder: _elm_lang$core$Maybe$Nothing,
 				text: model.text,
 				show: false
@@ -29984,7 +26186,7 @@ var _lucamug$elm_style_framework$Framework_StyleElementsInput$example6 = functio
 		_1: 'Input.newPassword []\n    { label = Input.labelAbove [] <| text \"Label\"\n    , onChange = Just Input\n    , placeholder = Nothing\n    , text = model.text\n    , show = False\n    }'
 	};
 };
-var _lucamug$elm_style_framework$Framework_StyleElementsInput$example7 = function (model) {
+var _puruzio$elm_style_framework$Framework_StyleElementsInput$example7 = function (model) {
 	return {
 		ctor: '_Tuple2',
 		_0: A2(
@@ -29995,7 +26197,7 @@ var _lucamug$elm_style_framework$Framework_StyleElementsInput$example7 = functio
 					_mdgriffith$stylish_elephants$Element_Input$labelAbove,
 					{ctor: '[]'},
 					_mdgriffith$stylish_elephants$Element$text('Label')),
-				onChange: _elm_lang$core$Maybe$Just(_lucamug$elm_style_framework$Framework_StyleElementsInput$Input),
+				onChange: _elm_lang$core$Maybe$Just(_puruzio$elm_style_framework$Framework_StyleElementsInput$Input),
 				placeholder: _elm_lang$core$Maybe$Nothing,
 				text: model.text,
 				show: false
@@ -30003,7 +26205,7 @@ var _lucamug$elm_style_framework$Framework_StyleElementsInput$example7 = functio
 		_1: 'Input.currentPassword []\n    { label = Input.labelAbove [] <| text \"Label\"\n    , onChange = Just Input\n    , placeholder = Nothing\n    , text = model.text\n    , show = False\n    }'
 	};
 };
-var _lucamug$elm_style_framework$Framework_StyleElementsInput$example8 = function (model) {
+var _puruzio$elm_style_framework$Framework_StyleElementsInput$example8 = function (model) {
 	return {
 		ctor: '_Tuple2',
 		_0: A2(
@@ -30014,14 +26216,14 @@ var _lucamug$elm_style_framework$Framework_StyleElementsInput$example8 = functio
 					_mdgriffith$stylish_elephants$Element_Input$labelAbove,
 					{ctor: '[]'},
 					_mdgriffith$stylish_elephants$Element$text('Label')),
-				onChange: _elm_lang$core$Maybe$Just(_lucamug$elm_style_framework$Framework_StyleElementsInput$Input),
+				onChange: _elm_lang$core$Maybe$Just(_puruzio$elm_style_framework$Framework_StyleElementsInput$Input),
 				placeholder: _elm_lang$core$Maybe$Nothing,
 				text: model.text
 			}),
 		_1: 'Input.email []\n    { label = Input.labelAbove [] <| text \"Label\"\n    , onChange = Just Input\n    , placeholder = Nothing\n    , text = model.text\n    }'
 	};
 };
-var _lucamug$elm_style_framework$Framework_StyleElementsInput$example9 = function (model) {
+var _puruzio$elm_style_framework$Framework_StyleElementsInput$example9 = function (model) {
 	return {
 		ctor: '_Tuple2',
 		_0: A2(
@@ -30032,14 +26234,14 @@ var _lucamug$elm_style_framework$Framework_StyleElementsInput$example9 = functio
 					_mdgriffith$stylish_elephants$Element_Input$labelAbove,
 					{ctor: '[]'},
 					_mdgriffith$stylish_elephants$Element$text('Label')),
-				onChange: _elm_lang$core$Maybe$Just(_lucamug$elm_style_framework$Framework_StyleElementsInput$Input),
+				onChange: _elm_lang$core$Maybe$Just(_puruzio$elm_style_framework$Framework_StyleElementsInput$Input),
 				placeholder: _elm_lang$core$Maybe$Nothing,
 				text: model.text
 			}),
 		_1: 'Input.search []\n    { label = Input.labelAbove [] <| text \"Label\"\n    , onChange = Just Input\n    , placeholder = Nothing\n    , text = model.text\n    }'
 	};
 };
-var _lucamug$elm_style_framework$Framework_StyleElementsInput$example10 = function (model) {
+var _puruzio$elm_style_framework$Framework_StyleElementsInput$example10 = function (model) {
 	return {
 		ctor: '_Tuple2',
 		_0: A2(
@@ -30050,7 +26252,7 @@ var _lucamug$elm_style_framework$Framework_StyleElementsInput$example10 = functi
 					_mdgriffith$stylish_elephants$Element_Input$labelAbove,
 					{ctor: '[]'},
 					_mdgriffith$stylish_elephants$Element$text('Label')),
-				onChange: _elm_lang$core$Maybe$Just(_lucamug$elm_style_framework$Framework_StyleElementsInput$Input),
+				onChange: _elm_lang$core$Maybe$Just(_puruzio$elm_style_framework$Framework_StyleElementsInput$Input),
 				placeholder: _elm_lang$core$Maybe$Nothing,
 				text: model.text,
 				spellcheck: false
@@ -30058,7 +26260,7 @@ var _lucamug$elm_style_framework$Framework_StyleElementsInput$example10 = functi
 		_1: 'Input.multiline []\n    { label = Input.labelAbove [] <| text \"Label\"\n    , onChange = Just Input\n    , placeholder = Nothing\n    , text = model.text\n    , spellcheck = False\n    }'
 	};
 };
-var _lucamug$elm_style_framework$Framework_StyleElementsInput$example11 = function (model) {
+var _puruzio$elm_style_framework$Framework_StyleElementsInput$example11 = function (model) {
 	return {
 		ctor: '_Tuple2',
 		_0: A2(
@@ -30069,7 +26271,7 @@ var _lucamug$elm_style_framework$Framework_StyleElementsInput$example11 = functi
 					_mdgriffith$stylish_elephants$Element_Input$labelAbove,
 					{ctor: '[]'},
 					_mdgriffith$stylish_elephants$Element$text('Label')),
-				onChange: _elm_lang$core$Maybe$Just(_lucamug$elm_style_framework$Framework_StyleElementsInput$Input),
+				onChange: _elm_lang$core$Maybe$Just(_puruzio$elm_style_framework$Framework_StyleElementsInput$Input),
 				placeholder: _elm_lang$core$Maybe$Nothing,
 				text: model.text,
 				spellcheck: true
@@ -30077,8 +26279,8 @@ var _lucamug$elm_style_framework$Framework_StyleElementsInput$example11 = functi
 		_1: 'Input.multiline []\n    { label = Input.labelAbove [] <| text \"Label\"\n    , onChange = Just Input\n    , placeholder = Nothing\n    , text = model.text\n    , spellcheck = True\n    }'
 	};
 };
-var _lucamug$elm_style_framework$Framework_StyleElementsInput$Button = {ctor: 'Button'};
-var _lucamug$elm_style_framework$Framework_StyleElementsInput$example0 = function (model) {
+var _puruzio$elm_style_framework$Framework_StyleElementsInput$Button = {ctor: 'Button'};
+var _puruzio$elm_style_framework$Framework_StyleElementsInput$example0 = function (model) {
 	return {
 		ctor: '_Tuple2',
 		_0: A2(
@@ -30086,15 +26288,15 @@ var _lucamug$elm_style_framework$Framework_StyleElementsInput$example0 = functio
 			{ctor: '[]'},
 			{
 				label: _mdgriffith$stylish_elephants$Element$text('Label'),
-				onPress: _elm_lang$core$Maybe$Just(_lucamug$elm_style_framework$Framework_StyleElementsInput$Button)
+				onPress: _elm_lang$core$Maybe$Just(_puruzio$elm_style_framework$Framework_StyleElementsInput$Button)
 			}),
 		_1: 'Input.button []\n    { label = text \"Label\"\n    , onPress = Just Button\n    }'
 	};
 };
-var _lucamug$elm_style_framework$Framework_StyleElementsInput$Radio = function (a) {
+var _puruzio$elm_style_framework$Framework_StyleElementsInput$Radio = function (a) {
 	return {ctor: 'Radio', _0: a};
 };
-var _lucamug$elm_style_framework$Framework_StyleElementsInput$example3 = function (model) {
+var _puruzio$elm_style_framework$Framework_StyleElementsInput$example3 = function (model) {
 	return {
 		ctor: '_Tuple2',
 		_0: A2(
@@ -30105,7 +26307,7 @@ var _lucamug$elm_style_framework$Framework_StyleElementsInput$example3 = functio
 					_mdgriffith$stylish_elephants$Element_Input$labelAbove,
 					{ctor: '[]'},
 					_mdgriffith$stylish_elephants$Element$text('Label')),
-				onChange: _elm_lang$core$Maybe$Just(_lucamug$elm_style_framework$Framework_StyleElementsInput$Radio),
+				onChange: _elm_lang$core$Maybe$Just(_puruzio$elm_style_framework$Framework_StyleElementsInput$Radio),
 				selected: model.radio,
 				options: {
 					ctor: '::',
@@ -30133,7 +26335,7 @@ var _lucamug$elm_style_framework$Framework_StyleElementsInput$example3 = functio
 		_1: 'Input.radio []\n    { label = Input.labelAbove [] <| text \"Label\"\n    , onChange = Just Radio\n    , selected = model.radio\n    , options =\n        [ Input.option \"A\" (text \"Radio A\")\n        , Input.option \"B\" (text \"Radio B\")\n        , Input.option \"C\" (text \"Radio C\")\n        ]\n    }'
 	};
 };
-var _lucamug$elm_style_framework$Framework_StyleElementsInput$example4 = function (model) {
+var _puruzio$elm_style_framework$Framework_StyleElementsInput$example4 = function (model) {
 	return {
 		ctor: '_Tuple2',
 		_0: A2(
@@ -30144,7 +26346,7 @@ var _lucamug$elm_style_framework$Framework_StyleElementsInput$example4 = functio
 					_mdgriffith$stylish_elephants$Element_Input$labelAbove,
 					{ctor: '[]'},
 					_mdgriffith$stylish_elephants$Element$text('Label')),
-				onChange: _elm_lang$core$Maybe$Just(_lucamug$elm_style_framework$Framework_StyleElementsInput$Radio),
+				onChange: _elm_lang$core$Maybe$Just(_puruzio$elm_style_framework$Framework_StyleElementsInput$Radio),
 				selected: model.radio,
 				options: {
 					ctor: '::',
@@ -30173,7 +26375,7 @@ var _lucamug$elm_style_framework$Framework_StyleElementsInput$example4 = functio
 	};
 };
 
-var _lucamug$elm_style_framework$Framework_Typography$fontSize = function (level) {
+var _puruzio$elm_style_framework$Framework_Typography$fontSize = function (level) {
 	var _p0 = level;
 	switch (_p0.ctor) {
 		case 'SizeH1':
@@ -30196,7 +26398,7 @@ var _lucamug$elm_style_framework$Framework_Typography$fontSize = function (level
 			return 12;
 	}
 };
-var _lucamug$elm_style_framework$Framework_Typography$headingLevel = function (level) {
+var _puruzio$elm_style_framework$Framework_Typography$headingLevel = function (level) {
 	var _p1 = level;
 	switch (_p1.ctor) {
 		case 'SizeH1':
@@ -30215,14 +26417,14 @@ var _lucamug$elm_style_framework$Framework_Typography$headingLevel = function (l
 			return 5;
 	}
 };
-var _lucamug$elm_style_framework$Framework_Typography$genericRatio = 1.4;
-var _lucamug$elm_style_framework$Framework_Typography$scaledFontLevel = function (n) {
+var _puruzio$elm_style_framework$Framework_Typography$genericRatio = 1.4;
+var _puruzio$elm_style_framework$Framework_Typography$scaledFontLevel = function (n) {
 	return _elm_lang$core$Basics$round(
 		16 * Math.pow(
-			_lucamug$elm_style_framework$Framework_Typography$genericRatio,
+			_puruzio$elm_style_framework$Framework_Typography$genericRatio,
 			_elm_lang$core$Basics$toFloat(n)));
 };
-var _lucamug$elm_style_framework$Framework_Typography$heading = F3(
+var _puruzio$elm_style_framework$Framework_Typography$heading = F3(
 	function (level, attributes, child) {
 		return A2(
 			_mdgriffith$stylish_elephants$Element$el,
@@ -30231,11 +26433,11 @@ var _lucamug$elm_style_framework$Framework_Typography$heading = F3(
 				{
 					ctor: '::',
 					_0: _mdgriffith$stylish_elephants$Element_Region$heading(
-						_lucamug$elm_style_framework$Framework_Typography$headingLevel(level)),
+						_puruzio$elm_style_framework$Framework_Typography$headingLevel(level)),
 					_1: {
 						ctor: '::',
 						_0: _mdgriffith$stylish_elephants$Element_Font$size(
-							_lucamug$elm_style_framework$Framework_Typography$fontSize(level)),
+							_puruzio$elm_style_framework$Framework_Typography$fontSize(level)),
 						_1: {
 							ctor: '::',
 							_0: _mdgriffith$stylish_elephants$Element$paddingEach(
@@ -30255,31 +26457,31 @@ var _lucamug$elm_style_framework$Framework_Typography$heading = F3(
 				attributes),
 			child);
 	});
-var _lucamug$elm_style_framework$Framework_Typography$SizeExtraSmall = {ctor: 'SizeExtraSmall'};
-var _lucamug$elm_style_framework$Framework_Typography$SizeSmall = {ctor: 'SizeSmall'};
-var _lucamug$elm_style_framework$Framework_Typography$SizeLead = {ctor: 'SizeLead'};
-var _lucamug$elm_style_framework$Framework_Typography$SizeH6 = {ctor: 'SizeH6'};
-var _lucamug$elm_style_framework$Framework_Typography$h6 = _lucamug$elm_style_framework$Framework_Typography$heading(_lucamug$elm_style_framework$Framework_Typography$SizeH6);
-var _lucamug$elm_style_framework$Framework_Typography$SizeH5 = {ctor: 'SizeH5'};
-var _lucamug$elm_style_framework$Framework_Typography$h5 = _lucamug$elm_style_framework$Framework_Typography$heading(_lucamug$elm_style_framework$Framework_Typography$SizeH5);
-var _lucamug$elm_style_framework$Framework_Typography$SizeH4 = {ctor: 'SizeH4'};
-var _lucamug$elm_style_framework$Framework_Typography$h4 = _lucamug$elm_style_framework$Framework_Typography$heading(_lucamug$elm_style_framework$Framework_Typography$SizeH4);
-var _lucamug$elm_style_framework$Framework_Typography$SizeH3 = {ctor: 'SizeH3'};
-var _lucamug$elm_style_framework$Framework_Typography$h3 = _lucamug$elm_style_framework$Framework_Typography$heading(_lucamug$elm_style_framework$Framework_Typography$SizeH3);
-var _lucamug$elm_style_framework$Framework_Typography$SizeH2 = {ctor: 'SizeH2'};
-var _lucamug$elm_style_framework$Framework_Typography$h2 = _lucamug$elm_style_framework$Framework_Typography$heading(_lucamug$elm_style_framework$Framework_Typography$SizeH2);
-var _lucamug$elm_style_framework$Framework_Typography$SizeH1 = {ctor: 'SizeH1'};
-var _lucamug$elm_style_framework$Framework_Typography$h1 = F2(
+var _puruzio$elm_style_framework$Framework_Typography$SizeExtraSmall = {ctor: 'SizeExtraSmall'};
+var _puruzio$elm_style_framework$Framework_Typography$SizeSmall = {ctor: 'SizeSmall'};
+var _puruzio$elm_style_framework$Framework_Typography$SizeLead = {ctor: 'SizeLead'};
+var _puruzio$elm_style_framework$Framework_Typography$SizeH6 = {ctor: 'SizeH6'};
+var _puruzio$elm_style_framework$Framework_Typography$h6 = _puruzio$elm_style_framework$Framework_Typography$heading(_puruzio$elm_style_framework$Framework_Typography$SizeH6);
+var _puruzio$elm_style_framework$Framework_Typography$SizeH5 = {ctor: 'SizeH5'};
+var _puruzio$elm_style_framework$Framework_Typography$h5 = _puruzio$elm_style_framework$Framework_Typography$heading(_puruzio$elm_style_framework$Framework_Typography$SizeH5);
+var _puruzio$elm_style_framework$Framework_Typography$SizeH4 = {ctor: 'SizeH4'};
+var _puruzio$elm_style_framework$Framework_Typography$h4 = _puruzio$elm_style_framework$Framework_Typography$heading(_puruzio$elm_style_framework$Framework_Typography$SizeH4);
+var _puruzio$elm_style_framework$Framework_Typography$SizeH3 = {ctor: 'SizeH3'};
+var _puruzio$elm_style_framework$Framework_Typography$h3 = _puruzio$elm_style_framework$Framework_Typography$heading(_puruzio$elm_style_framework$Framework_Typography$SizeH3);
+var _puruzio$elm_style_framework$Framework_Typography$SizeH2 = {ctor: 'SizeH2'};
+var _puruzio$elm_style_framework$Framework_Typography$h2 = _puruzio$elm_style_framework$Framework_Typography$heading(_puruzio$elm_style_framework$Framework_Typography$SizeH2);
+var _puruzio$elm_style_framework$Framework_Typography$SizeH1 = {ctor: 'SizeH1'};
+var _puruzio$elm_style_framework$Framework_Typography$h1 = F2(
 	function (listAttr, element) {
-		return A3(_lucamug$elm_style_framework$Framework_Typography$heading, _lucamug$elm_style_framework$Framework_Typography$SizeH1, listAttr, element);
+		return A3(_puruzio$elm_style_framework$Framework_Typography$heading, _puruzio$elm_style_framework$Framework_Typography$SizeH1, listAttr, element);
 	});
-var _lucamug$elm_style_framework$Framework_Typography$introspection = {
+var _puruzio$elm_style_framework$Framework_Typography$introspection = {
 	name: 'Typography',
 	signature: 'h1 : List (Element.Attribute msg) -> Element.Element msg -> Element.Element msg',
 	description: '',
 	usage: 'h1 [] <| text \"Content\"',
 	usageResult: A2(
-		_lucamug$elm_style_framework$Framework_Typography$h1,
+		_puruzio$elm_style_framework$Framework_Typography$h1,
 		{ctor: '[]'},
 		_mdgriffith$stylish_elephants$Element$text('Content')),
 	boxed: false,
@@ -30293,7 +26495,7 @@ var _lucamug$elm_style_framework$Framework_Typography$introspection = {
 				_0: {
 					ctor: '_Tuple2',
 					_0: A2(
-						_lucamug$elm_style_framework$Framework_Typography$h1,
+						_puruzio$elm_style_framework$Framework_Typography$h1,
 						{ctor: '[]'},
 						_mdgriffith$stylish_elephants$Element$text('h1. Heading')),
 					_1: 'h1 [] <| text \"h1. Heading\"'
@@ -30303,7 +26505,7 @@ var _lucamug$elm_style_framework$Framework_Typography$introspection = {
 					_0: {
 						ctor: '_Tuple2',
 						_0: A2(
-							_lucamug$elm_style_framework$Framework_Typography$h2,
+							_puruzio$elm_style_framework$Framework_Typography$h2,
 							{ctor: '[]'},
 							_mdgriffith$stylish_elephants$Element$text('h2. Heading')),
 						_1: 'h2 [] <| text \"h2. Heading\"'
@@ -30313,7 +26515,7 @@ var _lucamug$elm_style_framework$Framework_Typography$introspection = {
 						_0: {
 							ctor: '_Tuple2',
 							_0: A2(
-								_lucamug$elm_style_framework$Framework_Typography$h3,
+								_puruzio$elm_style_framework$Framework_Typography$h3,
 								{ctor: '[]'},
 								_mdgriffith$stylish_elephants$Element$text('h3. Heading')),
 							_1: 'h3 [] <| text \"h3. Heading\"'
@@ -30323,7 +26525,7 @@ var _lucamug$elm_style_framework$Framework_Typography$introspection = {
 							_0: {
 								ctor: '_Tuple2',
 								_0: A2(
-									_lucamug$elm_style_framework$Framework_Typography$h4,
+									_puruzio$elm_style_framework$Framework_Typography$h4,
 									{ctor: '[]'},
 									_mdgriffith$stylish_elephants$Element$text('h4. Heading')),
 								_1: 'h4 [] <| text \"h4. Heading\"'
@@ -30333,7 +26535,7 @@ var _lucamug$elm_style_framework$Framework_Typography$introspection = {
 								_0: {
 									ctor: '_Tuple2',
 									_0: A2(
-										_lucamug$elm_style_framework$Framework_Typography$h5,
+										_puruzio$elm_style_framework$Framework_Typography$h5,
 										{ctor: '[]'},
 										_mdgriffith$stylish_elephants$Element$text('h5. Heading')),
 									_1: 'h5 [] <| text \"h5. Heading\"'
@@ -30343,7 +26545,7 @@ var _lucamug$elm_style_framework$Framework_Typography$introspection = {
 									_0: {
 										ctor: '_Tuple2',
 										_0: A2(
-											_lucamug$elm_style_framework$Framework_Typography$h6,
+											_puruzio$elm_style_framework$Framework_Typography$h6,
 											{ctor: '[]'},
 											_mdgriffith$stylish_elephants$Element$text('h6. Heading')),
 										_1: 'h6 [] <| text \"h6. Heading\"'
@@ -30360,7 +26562,7 @@ var _lucamug$elm_style_framework$Framework_Typography$introspection = {
 	}
 };
 
-var _lucamug$elm_style_framework$Framework$introspectionExample = function (id) {
+var _puruzio$elm_style_framework$Framework$introspectionExample = function (id) {
 	return {
 		name: A2(_elm_lang$core$Basics_ops['++'], 'Element ', id),
 		signature: A2(_elm_lang$core$Basics_ops['++'], 'Signature ', id),
@@ -30442,7 +26644,7 @@ var _lucamug$elm_style_framework$Framework$introspectionExample = function (id) 
 		}
 	};
 };
-var _lucamug$elm_style_framework$Framework$hackInLineStyle = F2(
+var _puruzio$elm_style_framework$Framework$hackInLineStyle = F2(
 	function (text1, text2) {
 		return _mdgriffith$stylish_elephants$Element$htmlAttribute(
 			_elm_lang$html$Html_Attributes$style(
@@ -30452,8 +26654,8 @@ var _lucamug$elm_style_framework$Framework$hackInLineStyle = F2(
 					_1: {ctor: '[]'}
 				}));
 	});
-var _lucamug$elm_style_framework$Framework$css = '\nbody {\n    line-height: normal !important;\n}\n.elmStyleguideGenerator-open {\ntransition: all .8s;\nttransform: translateY(0);\nmax-height: 500px;\n}\n.elmStyleguideGenerator-close {\ntransition: all .1s;\nttransform: translateY(-100%);\nmax-height: 0;\n}\npre {\n    margin: 0;\n}\n';
-var _lucamug$elm_style_framework$Framework$update = F2(
+var _puruzio$elm_style_framework$Framework$css = '\nbody {\n    line-height: normal !important;\n}\n.elmStyleguideGenerator-open {\ntransition: all .8s;\nttransform: translateY(0);\nmax-height: 500px;\n}\n.elmStyleguideGenerator-close {\ntransition: all .1s;\nttransform: translateY(-100%);\nmax-height: 0;\n}\npre {\n    margin: 0;\n}\n';
+var _puruzio$elm_style_framework$Framework$update = F2(
 	function (msg, model) {
 		var _p0 = msg;
 		switch (_p0.ctor) {
@@ -30539,7 +26741,7 @@ var _lucamug$elm_style_framework$Framework$update = F2(
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'MsgStyleElementsInput':
-				var _p9 = A2(_lucamug$elm_style_framework$Framework_StyleElementsInput$update, _p0._0, model.modelStyleElementsInput);
+				var _p9 = A2(_puruzio$elm_style_framework$Framework_StyleElementsInput$update, _p0._0, model.modelStyleElementsInput);
 				var newModel = _p9._0;
 				var newCmd = _p9._1;
 				return {
@@ -30550,7 +26752,7 @@ var _lucamug$elm_style_framework$Framework$update = F2(
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'MsgForm':
-				var _p10 = A2(_lucamug$elm_style_framework$Framework_Form$update, _p0._0, model.modelForm);
+				var _p10 = A2(_puruzio$elm_style_framework$Framework_Form$update, _p0._0, model.modelForm);
 				var newModel = _p10._0;
 				var newCmd = _p10._1;
 				return {
@@ -30570,7 +26772,7 @@ var _lucamug$elm_style_framework$Framework$update = F2(
 				};
 		}
 	});
-var _lucamug$elm_style_framework$Framework$conf = {
+var _puruzio$elm_style_framework$Framework$conf = {
 	gray3: A3(_elm_lang$core$Color$rgb, 51, 51, 51),
 	grayB: A3(_elm_lang$core$Color$rgb, 182, 182, 182),
 	logo: A2(
@@ -30634,49 +26836,49 @@ var _lucamug$elm_style_framework$Framework$conf = {
 		{ctor: '[]'},
 		{ctor: '[]'})
 };
-var _lucamug$elm_style_framework$Framework$init = F2(
+var _puruzio$elm_style_framework$Framework$init = F2(
 	function (flag, location) {
 		return {
 			ctor: '_Tuple2',
 			_0: {
 				location: location,
-				p: _lucamug$elm_style_framework$Framework$conf.p,
+				p: _puruzio$elm_style_framework$Framework$conf.p,
 				selected: _elm_lang$core$Maybe$Nothing,
-				modelStyleElementsInput: _lucamug$elm_style_framework$Framework_StyleElementsInput$initModel,
-				modelForm: _lucamug$elm_style_framework$Framework_Form$initModel,
+				modelStyleElementsInput: _puruzio$elm_style_framework$Framework_StyleElementsInput$initModel,
+				modelForm: _puruzio$elm_style_framework$Framework_Form$initModel,
 				localStorage: flag.local_storage,
 				maybeWindowSize: _elm_lang$core$Maybe$Just(
 					A2(_elm_lang$window$Window$Size, flag.width, flag.height)),
 				introspections: {
 					ctor: '::',
-					_0: {ctor: '_Tuple2', _0: _lucamug$elm_style_framework$Framework_Color$introspection, _1: true},
+					_0: {ctor: '_Tuple2', _0: _puruzio$elm_style_framework$Framework_Color$introspection, _1: true},
 					_1: {
 						ctor: '::',
-						_0: {ctor: '_Tuple2', _0: _lucamug$elm_style_framework$Framework_Form$introspection, _1: true},
+						_0: {ctor: '_Tuple2', _0: _puruzio$elm_style_framework$Framework_Form$introspection, _1: true},
 						_1: {
 							ctor: '::',
-							_0: {ctor: '_Tuple2', _0: _lucamug$elm_style_framework$Framework_Typography$introspection, _1: true},
+							_0: {ctor: '_Tuple2', _0: _puruzio$elm_style_framework$Framework_Typography$introspection, _1: true},
 							_1: {
 								ctor: '::',
-								_0: {ctor: '_Tuple2', _0: _lucamug$elm_style_framework$Framework_Cards$introspection, _1: true},
+								_0: {ctor: '_Tuple2', _0: _puruzio$elm_style_framework$Framework_Cards$introspection, _1: true},
 								_1: {
 									ctor: '::',
-									_0: {ctor: '_Tuple2', _0: _lucamug$elm_style_framework$Framework_Button$introspection, _1: true},
+									_0: {ctor: '_Tuple2', _0: _puruzio$elm_style_framework$Framework_Button$introspection, _1: true},
 									_1: {
 										ctor: '::',
-										_0: {ctor: '_Tuple2', _0: _lucamug$elm_style_framework$Framework_Spinner$introspection, _1: true},
+										_0: {ctor: '_Tuple2', _0: _puruzio$elm_style_framework$Framework_Spinner$introspection, _1: true},
 										_1: {
 											ctor: '::',
-											_0: {ctor: '_Tuple2', _0: _lucamug$elm_style_framework$Framework_Logo$introspection, _1: true},
+											_0: {ctor: '_Tuple2', _0: _puruzio$elm_style_framework$Framework_Logo$introspection, _1: true},
 											_1: {
 												ctor: '::',
-												_0: {ctor: '_Tuple2', _0: _lucamug$elm_style_framework$Framework_Icon$introspection, _1: true},
+												_0: {ctor: '_Tuple2', _0: _puruzio$elm_style_framework$Framework_Icon$introspection, _1: true},
 												_1: {
 													ctor: '::',
-													_0: {ctor: '_Tuple2', _0: _lucamug$elm_style_framework$Framework_StyleElements$introspection, _1: true},
+													_0: {ctor: '_Tuple2', _0: _puruzio$elm_style_framework$Framework_StyleElements$introspection, _1: true},
 													_1: {
 														ctor: '::',
-														_0: {ctor: '_Tuple2', _0: _lucamug$elm_style_framework$Framework_StyleElementsInput$introspection, _1: true},
+														_0: {ctor: '_Tuple2', _0: _puruzio$elm_style_framework$Framework_StyleElementsInput$introspection, _1: true},
 														_1: {ctor: '[]'}
 													}
 												}
@@ -30693,7 +26895,7 @@ var _lucamug$elm_style_framework$Framework$init = F2(
 				{ctor: '[]'})
 		};
 	});
-var _lucamug$elm_style_framework$Framework$viewTitleAndSubTitle = F2(
+var _puruzio$elm_style_framework$Framework$viewTitleAndSubTitle = F2(
 	function (title, subTitle) {
 		return A2(
 			_mdgriffith$stylish_elephants$Element$column,
@@ -30703,7 +26905,7 @@ var _lucamug$elm_style_framework$Framework$viewTitleAndSubTitle = F2(
 					A3(_elm_lang$core$Color$rgb, 247, 247, 247)),
 				_1: {
 					ctor: '::',
-					_0: _mdgriffith$stylish_elephants$Element$padding(_lucamug$elm_style_framework$Framework$conf.mainPadding),
+					_0: _mdgriffith$stylish_elephants$Element$padding(_puruzio$elm_style_framework$Framework$conf.mainPadding),
 					_1: {
 						ctor: '::',
 						_0: _mdgriffith$stylish_elephants$Element$spacing(10),
@@ -30751,13 +26953,13 @@ var _lucamug$elm_style_framework$Framework$viewTitleAndSubTitle = F2(
 				}
 			});
 	});
-var _lucamug$elm_style_framework$Framework$viewIntrospectionTitle = function (introspection) {
+var _puruzio$elm_style_framework$Framework$viewIntrospectionTitle = function (introspection) {
 	return A2(
-		_lucamug$elm_style_framework$Framework$viewTitleAndSubTitle,
+		_puruzio$elm_style_framework$Framework$viewTitleAndSubTitle,
 		introspection.name,
 		_mdgriffith$stylish_elephants$Element$text(introspection.description));
 };
-var _lucamug$elm_style_framework$Framework$sourceCodeWrapper = function (sourceCode) {
+var _puruzio$elm_style_framework$Framework$sourceCodeWrapper = function (sourceCode) {
 	return A2(
 		_mdgriffith$stylish_elephants$Element$paragraph,
 		{
@@ -30786,7 +26988,7 @@ var _lucamug$elm_style_framework$Framework$sourceCodeWrapper = function (sourceC
 								_0: _mdgriffith$stylish_elephants$Element_Font$size(16),
 								_1: {
 									ctor: '::',
-									_0: _mdgriffith$stylish_elephants$Element_Background$color(_lucamug$elm_style_framework$Framework$conf.gray3),
+									_0: _mdgriffith$stylish_elephants$Element_Background$color(_puruzio$elm_style_framework$Framework$conf.gray3),
 									_1: {
 										ctor: '::',
 										_0: _mdgriffith$stylish_elephants$Element$padding(16),
@@ -30817,7 +27019,7 @@ var _lucamug$elm_style_framework$Framework$sourceCodeWrapper = function (sourceC
 			_1: {ctor: '[]'}
 		});
 };
-var _lucamug$elm_style_framework$Framework$generatedBy = A2(
+var _puruzio$elm_style_framework$Framework$generatedBy = A2(
 	_mdgriffith$stylish_elephants$Element$el,
 	{
 		ctor: '::',
@@ -30858,94 +27060,94 @@ var _lucamug$elm_style_framework$Framework$generatedBy = A2(
 				_1: {
 					ctor: '::',
 					_0: _mdgriffith$stylish_elephants$Element$text(
-						A2(_elm_lang$core$Basics_ops['++'], ' version ', _lucamug$elm_style_framework$Framework$conf.version)),
+						A2(_elm_lang$core$Basics_ops['++'], ' version ', _puruzio$elm_style_framework$Framework$conf.version)),
 					_1: {ctor: '[]'}
 				}
 			}
 		}));
-var _lucamug$elm_style_framework$Framework$Model = F9(
+var _puruzio$elm_style_framework$Framework$Model = F9(
 	function (a, b, c, d, e, f, g, h, i) {
 		return {selected: a, maybeWindowSize: b, modelStyleElementsInput: c, modelForm: d, introspections: e, location: f, localStorage: g, maybeWindowSize: h, p: i};
 	});
-var _lucamug$elm_style_framework$Framework$Flag = F3(
+var _puruzio$elm_style_framework$Framework$Flag = F3(
 	function (a, b, c) {
 		return {local_storage: a, width: b, height: c};
 	});
-var _lucamug$elm_style_framework$Framework$Introspection = F7(
+var _puruzio$elm_style_framework$Framework$Introspection = F7(
 	function (a, b, c, d, e, f, g) {
 		return {name: a, signature: b, description: c, usage: d, usageResult: e, variations: f, boxed: g};
 	});
-var _lucamug$elm_style_framework$Framework$MsgChangeP = function (a) {
+var _puruzio$elm_style_framework$Framework$MsgChangeP = function (a) {
 	return {ctor: 'MsgChangeP', _0: a};
 };
-var _lucamug$elm_style_framework$Framework$MsgChangeUrl = function (a) {
+var _puruzio$elm_style_framework$Framework$MsgChangeUrl = function (a) {
 	return {ctor: 'MsgChangeUrl', _0: a};
 };
-var _lucamug$elm_style_framework$Framework$MsgForm = function (a) {
+var _puruzio$elm_style_framework$Framework$MsgForm = function (a) {
 	return {ctor: 'MsgForm', _0: a};
 };
-var _lucamug$elm_style_framework$Framework$specialComponentForm = F2(
+var _puruzio$elm_style_framework$Framework$specialComponentForm = F2(
 	function (model, component) {
 		var componentTuplet = component(model.modelForm);
 		return {
 			ctor: '_Tuple2',
 			_0: A2(
 				_mdgriffith$stylish_elephants$Element$map,
-				_lucamug$elm_style_framework$Framework$MsgForm,
+				_puruzio$elm_style_framework$Framework$MsgForm,
 				_elm_lang$core$Tuple$first(componentTuplet)),
 			_1: _elm_lang$core$Tuple$second(componentTuplet)
 		};
 	});
-var _lucamug$elm_style_framework$Framework$MsgStyleElementsInput = function (a) {
+var _puruzio$elm_style_framework$Framework$MsgStyleElementsInput = function (a) {
 	return {ctor: 'MsgStyleElementsInput', _0: a};
 };
-var _lucamug$elm_style_framework$Framework$specialComponent = F2(
+var _puruzio$elm_style_framework$Framework$specialComponent = F2(
 	function (model, component) {
 		var componentTuplet = component(model.modelStyleElementsInput);
 		return {
 			ctor: '_Tuple2',
 			_0: A2(
 				_mdgriffith$stylish_elephants$Element$map,
-				_lucamug$elm_style_framework$Framework$MsgStyleElementsInput,
+				_puruzio$elm_style_framework$Framework$MsgStyleElementsInput,
 				_elm_lang$core$Tuple$first(componentTuplet)),
 			_1: _elm_lang$core$Tuple$second(componentTuplet)
 		};
 	});
-var _lucamug$elm_style_framework$Framework$viewSubSection = F3(
+var _puruzio$elm_style_framework$Framework$viewSubSection = F3(
 	function (model, _p11, boxed) {
 		var _p12 = _p11;
 		var _p14 = _p12._0;
 		var _p13 = _elm_lang$core$Native_Utils.eq(
 			_p14,
-			_mdgriffith$stylish_elephants$Element$text('special: Form.example1')) ? A2(_lucamug$elm_style_framework$Framework$specialComponentForm, model, _lucamug$elm_style_framework$Framework_Form$example1) : (_elm_lang$core$Native_Utils.eq(
+			_mdgriffith$stylish_elephants$Element$text('special: Form.example1')) ? A2(_puruzio$elm_style_framework$Framework$specialComponentForm, model, _puruzio$elm_style_framework$Framework_Form$example1) : (_elm_lang$core$Native_Utils.eq(
 			_p14,
-			_mdgriffith$stylish_elephants$Element$text('special: Form.example2')) ? A2(_lucamug$elm_style_framework$Framework$specialComponentForm, model, _lucamug$elm_style_framework$Framework_Form$example2) : (_elm_lang$core$Native_Utils.eq(
+			_mdgriffith$stylish_elephants$Element$text('special: Form.example2')) ? A2(_puruzio$elm_style_framework$Framework$specialComponentForm, model, _puruzio$elm_style_framework$Framework_Form$example2) : (_elm_lang$core$Native_Utils.eq(
 			_p14,
-			_mdgriffith$stylish_elephants$Element$text('special: example0')) ? A2(_lucamug$elm_style_framework$Framework$specialComponent, model, _lucamug$elm_style_framework$Framework_StyleElementsInput$example0) : (_elm_lang$core$Native_Utils.eq(
+			_mdgriffith$stylish_elephants$Element$text('special: example0')) ? A2(_puruzio$elm_style_framework$Framework$specialComponent, model, _puruzio$elm_style_framework$Framework_StyleElementsInput$example0) : (_elm_lang$core$Native_Utils.eq(
 			_p14,
-			_mdgriffith$stylish_elephants$Element$text('special: example1')) ? A2(_lucamug$elm_style_framework$Framework$specialComponent, model, _lucamug$elm_style_framework$Framework_StyleElementsInput$example1) : (_elm_lang$core$Native_Utils.eq(
+			_mdgriffith$stylish_elephants$Element$text('special: example1')) ? A2(_puruzio$elm_style_framework$Framework$specialComponent, model, _puruzio$elm_style_framework$Framework_StyleElementsInput$example1) : (_elm_lang$core$Native_Utils.eq(
 			_p14,
-			_mdgriffith$stylish_elephants$Element$text('special: example2')) ? A2(_lucamug$elm_style_framework$Framework$specialComponent, model, _lucamug$elm_style_framework$Framework_StyleElementsInput$example2) : (_elm_lang$core$Native_Utils.eq(
+			_mdgriffith$stylish_elephants$Element$text('special: example2')) ? A2(_puruzio$elm_style_framework$Framework$specialComponent, model, _puruzio$elm_style_framework$Framework_StyleElementsInput$example2) : (_elm_lang$core$Native_Utils.eq(
 			_p14,
-			_mdgriffith$stylish_elephants$Element$text('special: example3')) ? A2(_lucamug$elm_style_framework$Framework$specialComponent, model, _lucamug$elm_style_framework$Framework_StyleElementsInput$example3) : (_elm_lang$core$Native_Utils.eq(
+			_mdgriffith$stylish_elephants$Element$text('special: example3')) ? A2(_puruzio$elm_style_framework$Framework$specialComponent, model, _puruzio$elm_style_framework$Framework_StyleElementsInput$example3) : (_elm_lang$core$Native_Utils.eq(
 			_p14,
-			_mdgriffith$stylish_elephants$Element$text('special: example4')) ? A2(_lucamug$elm_style_framework$Framework$specialComponent, model, _lucamug$elm_style_framework$Framework_StyleElementsInput$example4) : (_elm_lang$core$Native_Utils.eq(
+			_mdgriffith$stylish_elephants$Element$text('special: example4')) ? A2(_puruzio$elm_style_framework$Framework$specialComponent, model, _puruzio$elm_style_framework$Framework_StyleElementsInput$example4) : (_elm_lang$core$Native_Utils.eq(
 			_p14,
-			_mdgriffith$stylish_elephants$Element$text('special: example5')) ? A2(_lucamug$elm_style_framework$Framework$specialComponent, model, _lucamug$elm_style_framework$Framework_StyleElementsInput$example5) : (_elm_lang$core$Native_Utils.eq(
+			_mdgriffith$stylish_elephants$Element$text('special: example5')) ? A2(_puruzio$elm_style_framework$Framework$specialComponent, model, _puruzio$elm_style_framework$Framework_StyleElementsInput$example5) : (_elm_lang$core$Native_Utils.eq(
 			_p14,
-			_mdgriffith$stylish_elephants$Element$text('special: example6')) ? A2(_lucamug$elm_style_framework$Framework$specialComponent, model, _lucamug$elm_style_framework$Framework_StyleElementsInput$example6) : (_elm_lang$core$Native_Utils.eq(
+			_mdgriffith$stylish_elephants$Element$text('special: example6')) ? A2(_puruzio$elm_style_framework$Framework$specialComponent, model, _puruzio$elm_style_framework$Framework_StyleElementsInput$example6) : (_elm_lang$core$Native_Utils.eq(
 			_p14,
-			_mdgriffith$stylish_elephants$Element$text('special: example7')) ? A2(_lucamug$elm_style_framework$Framework$specialComponent, model, _lucamug$elm_style_framework$Framework_StyleElementsInput$example7) : (_elm_lang$core$Native_Utils.eq(
+			_mdgriffith$stylish_elephants$Element$text('special: example7')) ? A2(_puruzio$elm_style_framework$Framework$specialComponent, model, _puruzio$elm_style_framework$Framework_StyleElementsInput$example7) : (_elm_lang$core$Native_Utils.eq(
 			_p14,
-			_mdgriffith$stylish_elephants$Element$text('special: example8')) ? A2(_lucamug$elm_style_framework$Framework$specialComponent, model, _lucamug$elm_style_framework$Framework_StyleElementsInput$example8) : (_elm_lang$core$Native_Utils.eq(
+			_mdgriffith$stylish_elephants$Element$text('special: example8')) ? A2(_puruzio$elm_style_framework$Framework$specialComponent, model, _puruzio$elm_style_framework$Framework_StyleElementsInput$example8) : (_elm_lang$core$Native_Utils.eq(
 			_p14,
-			_mdgriffith$stylish_elephants$Element$text('special: example9')) ? A2(_lucamug$elm_style_framework$Framework$specialComponent, model, _lucamug$elm_style_framework$Framework_StyleElementsInput$example9) : (_elm_lang$core$Native_Utils.eq(
+			_mdgriffith$stylish_elephants$Element$text('special: example9')) ? A2(_puruzio$elm_style_framework$Framework$specialComponent, model, _puruzio$elm_style_framework$Framework_StyleElementsInput$example9) : (_elm_lang$core$Native_Utils.eq(
 			_p14,
-			_mdgriffith$stylish_elephants$Element$text('special: example9')) ? A2(_lucamug$elm_style_framework$Framework$specialComponent, model, _lucamug$elm_style_framework$Framework_StyleElementsInput$example9) : (_elm_lang$core$Native_Utils.eq(
+			_mdgriffith$stylish_elephants$Element$text('special: example9')) ? A2(_puruzio$elm_style_framework$Framework$specialComponent, model, _puruzio$elm_style_framework$Framework_StyleElementsInput$example9) : (_elm_lang$core$Native_Utils.eq(
 			_p14,
-			_mdgriffith$stylish_elephants$Element$text('special: example10')) ? A2(_lucamug$elm_style_framework$Framework$specialComponent, model, _lucamug$elm_style_framework$Framework_StyleElementsInput$example10) : (_elm_lang$core$Native_Utils.eq(
+			_mdgriffith$stylish_elephants$Element$text('special: example10')) ? A2(_puruzio$elm_style_framework$Framework$specialComponent, model, _puruzio$elm_style_framework$Framework_StyleElementsInput$example10) : (_elm_lang$core$Native_Utils.eq(
 			_p14,
-			_mdgriffith$stylish_elephants$Element$text('special: example11')) ? A2(_lucamug$elm_style_framework$Framework$specialComponent, model, _lucamug$elm_style_framework$Framework_StyleElementsInput$example11) : {ctor: '_Tuple2', _0: _p14, _1: _p12._1}))))))))))))));
+			_mdgriffith$stylish_elephants$Element$text('special: example11')) ? A2(_puruzio$elm_style_framework$Framework$specialComponent, model, _puruzio$elm_style_framework$Framework_StyleElementsInput$example11) : {ctor: '_Tuple2', _0: _p14, _1: _p12._1}))))))))))))));
 		var componentExampleToDisplay = _p13._0;
 		var componentExampleSourceCodeToDisplay = _p13._1;
 		return A2(
@@ -30975,21 +27177,21 @@ var _lucamug$elm_style_framework$Framework$viewSubSection = F3(
 					}),
 				_1: {
 					ctor: '::',
-					_0: _lucamug$elm_style_framework$Framework$sourceCodeWrapper(componentExampleSourceCodeToDisplay),
+					_0: _puruzio$elm_style_framework$Framework$sourceCodeWrapper(componentExampleSourceCodeToDisplay),
 					_1: {ctor: '[]'}
 				}
 			});
 	});
-var _lucamug$elm_style_framework$Framework$viewIntrospectionBody = F3(
+var _puruzio$elm_style_framework$Framework$viewIntrospectionBody = F3(
 	function (model, title, listSubSection) {
 		return A2(
 			_mdgriffith$stylish_elephants$Element$column,
 			{
 				ctor: '::',
-				_0: _mdgriffith$stylish_elephants$Element$padding(_lucamug$elm_style_framework$Framework$conf.mainPadding),
+				_0: _mdgriffith$stylish_elephants$Element$padding(_puruzio$elm_style_framework$Framework$conf.mainPadding),
 				_1: {
 					ctor: '::',
-					_0: _mdgriffith$stylish_elephants$Element$spacing(_lucamug$elm_style_framework$Framework$conf.mainPadding),
+					_0: _mdgriffith$stylish_elephants$Element$spacing(_puruzio$elm_style_framework$Framework$conf.mainPadding),
 					_1: {
 						ctor: '::',
 						_0: _mdgriffith$stylish_elephants$Element_Background$color(_elm_lang$core$Color$white),
@@ -31021,7 +27223,7 @@ var _lucamug$elm_style_framework$Framework$viewIntrospectionBody = F3(
 							function (_p15) {
 								var _p16 = _p15;
 								return A3(
-									_lucamug$elm_style_framework$Framework$viewSubSection,
+									_puruzio$elm_style_framework$Framework$viewSubSection,
 									model,
 									{ctor: '_Tuple2', _0: _p16._0, _1: _p16._1},
 									false);
@@ -31031,7 +27233,7 @@ var _lucamug$elm_style_framework$Framework$viewIntrospectionBody = F3(
 				}
 			});
 	});
-var _lucamug$elm_style_framework$Framework$viewIntrospection = F2(
+var _puruzio$elm_style_framework$Framework$viewIntrospection = F2(
 	function (model, introspection) {
 		return A2(
 			_mdgriffith$stylish_elephants$Element$column,
@@ -31040,18 +27242,18 @@ var _lucamug$elm_style_framework$Framework$viewIntrospection = F2(
 				_elm_lang$core$Basics_ops['++'],
 				{
 					ctor: '::',
-					_0: _lucamug$elm_style_framework$Framework$viewIntrospectionTitle(introspection),
+					_0: _puruzio$elm_style_framework$Framework$viewIntrospectionTitle(introspection),
 					_1: {ctor: '[]'}
 				},
 				A2(
 					_elm_lang$core$List$map,
 					function (_p17) {
 						var _p18 = _p17;
-						return A3(_lucamug$elm_style_framework$Framework$viewIntrospectionBody, model, _p18._0, _p18._1);
+						return A3(_puruzio$elm_style_framework$Framework$viewIntrospectionBody, model, _p18._0, _p18._1);
 					},
 					introspection.variations)));
 	});
-var _lucamug$elm_style_framework$Framework$viewSomething = F2(
+var _puruzio$elm_style_framework$Framework$viewSomething = F2(
 	function (model, _p19) {
 		var _p20 = _p19;
 		return A2(
@@ -31059,33 +27261,33 @@ var _lucamug$elm_style_framework$Framework$viewSomething = F2(
 			{ctor: '[]'},
 			{
 				ctor: '::',
-				_0: _lucamug$elm_style_framework$Framework$viewIntrospectionTitle(_p20._0),
+				_0: _puruzio$elm_style_framework$Framework$viewIntrospectionTitle(_p20._0),
 				_1: {
 					ctor: '::',
-					_0: A3(_lucamug$elm_style_framework$Framework$viewIntrospectionBody, model, _p20._1._0, _p20._1._1),
+					_0: A3(_puruzio$elm_style_framework$Framework$viewIntrospectionBody, model, _p20._1._0, _p20._1._1),
 					_1: {ctor: '[]'}
 				}
 			});
 	});
-var _lucamug$elm_style_framework$Framework$MsgChangeWindowSize = function (a) {
+var _puruzio$elm_style_framework$Framework$MsgChangeWindowSize = function (a) {
 	return {ctor: 'MsgChangeWindowSize', _0: a};
 };
-var _lucamug$elm_style_framework$Framework$subscriptions = function (model) {
+var _puruzio$elm_style_framework$Framework$subscriptions = function (model) {
 	return _elm_lang$core$Platform_Sub$batch(
 		{
 			ctor: '::',
-			_0: _elm_lang$window$Window$resizes(_lucamug$elm_style_framework$Framework$MsgChangeWindowSize),
+			_0: _elm_lang$window$Window$resizes(_puruzio$elm_style_framework$Framework$MsgChangeWindowSize),
 			_1: {ctor: '[]'}
 		});
 };
-var _lucamug$elm_style_framework$Framework$MsgGoTop = {ctor: 'MsgGoTop'};
-var _lucamug$elm_style_framework$Framework$viewLogo = F2(
+var _puruzio$elm_style_framework$Framework$MsgGoTop = {ctor: 'MsgGoTop'};
+var _puruzio$elm_style_framework$Framework$viewLogo = F2(
 	function (logo, version) {
 		return A2(
 			_mdgriffith$stylish_elephants$Element$column,
 			{
 				ctor: '::',
-				_0: _mdgriffith$stylish_elephants$Element_Events$onClick(_lucamug$elm_style_framework$Framework$MsgGoTop),
+				_0: _mdgriffith$stylish_elephants$Element_Events$onClick(_puruzio$elm_style_framework$Framework$MsgGoTop),
 				_1: {
 					ctor: '::',
 					_0: _mdgriffith$stylish_elephants$Element$pointer,
@@ -31111,7 +27313,7 @@ var _lucamug$elm_style_framework$Framework$viewLogo = F2(
 								_0: _mdgriffith$stylish_elephants$Element_Font$bold,
 								_1: {
 									ctor: '::',
-									_0: _mdgriffith$stylish_elephants$Element_Events$onClick(_lucamug$elm_style_framework$Framework$MsgGoTop),
+									_0: _mdgriffith$stylish_elephants$Element_Events$onClick(_puruzio$elm_style_framework$Framework$MsgGoTop),
 									_1: {ctor: '[]'}
 								}
 							}
@@ -31122,10 +27324,10 @@ var _lucamug$elm_style_framework$Framework$viewLogo = F2(
 				}
 			});
 	});
-var _lucamug$elm_style_framework$Framework$viewContentColumn = function (model) {
+var _puruzio$elm_style_framework$Framework$viewContentColumn = function (model) {
 	var _p21 = model.selected;
 	if (_p21.ctor === 'Just') {
-		return A2(_lucamug$elm_style_framework$Framework$viewSomething, model, _p21._0);
+		return A2(_puruzio$elm_style_framework$Framework$viewSomething, model, _p21._0);
 	} else {
 		return A2(
 			_mdgriffith$stylish_elephants$Element$el,
@@ -31151,10 +27353,10 @@ var _lucamug$elm_style_framework$Framework$viewContentColumn = function (model) 
 						_mdgriffith$stylish_elephants$Element$column,
 						{
 							ctor: '::',
-							_0: _mdgriffith$stylish_elephants$Element$padding(_lucamug$elm_style_framework$Framework$conf.mainPadding + 100),
+							_0: _mdgriffith$stylish_elephants$Element$padding(_puruzio$elm_style_framework$Framework$conf.mainPadding + 100),
 							_1: {
 								ctor: '::',
-								_0: _mdgriffith$stylish_elephants$Element$spacing(_lucamug$elm_style_framework$Framework$conf.mainPadding),
+								_0: _mdgriffith$stylish_elephants$Element$spacing(_puruzio$elm_style_framework$Framework$conf.mainPadding),
 								_1: {ctor: '[]'}
 							}
 						},
@@ -31163,7 +27365,7 @@ var _lucamug$elm_style_framework$Framework$viewContentColumn = function (model) 
 							_0: A2(
 								_mdgriffith$stylish_elephants$Element$el,
 								{ctor: '[]'},
-								A2(_lucamug$elm_style_framework$Framework$viewLogo, _lucamug$elm_style_framework$Framework$conf.logo, _lucamug$elm_style_framework$Framework$conf.version)),
+								A2(_puruzio$elm_style_framework$Framework$viewLogo, _puruzio$elm_style_framework$Framework$conf.logo, _puruzio$elm_style_framework$Framework$conf.version)),
 							_1: {
 								ctor: '::',
 								_0: A2(
@@ -31173,7 +27375,7 @@ var _lucamug$elm_style_framework$Framework$viewContentColumn = function (model) 
 										_0: _mdgriffith$stylish_elephants$Element_Font$size(24),
 										_1: {ctor: '[]'}
 									},
-									_lucamug$elm_style_framework$Framework$conf.introduction),
+									_puruzio$elm_style_framework$Framework$conf.introduction),
 								_1: {
 									ctor: '::',
 									_0: A2(
@@ -31187,7 +27389,7 @@ var _lucamug$elm_style_framework$Framework$viewContentColumn = function (model) 
 												_1: {ctor: '[]'}
 											}
 										},
-										A2(_lucamug$elm_style_framework$Framework_Icon$icon, _lucamug$elm_style_framework$Framework_Icon$ChevronDown, 32)),
+										A2(_puruzio$elm_style_framework$Framework_Icon$icon, _puruzio$elm_style_framework$Framework_Icon$ChevronDown, 32)),
 									_1: {ctor: '[]'}
 								}
 							}
@@ -31201,7 +27403,7 @@ var _lucamug$elm_style_framework$Framework$viewContentColumn = function (model) 
 								_elm_lang$core$List$map,
 								function (_p22) {
 									var _p23 = _p22;
-									return A2(_lucamug$elm_style_framework$Framework$viewIntrospection, model, _p23._0);
+									return A2(_puruzio$elm_style_framework$Framework$viewIntrospection, model, _p23._0);
 								},
 								model.introspections)),
 						_1: {ctor: '[]'}
@@ -31209,10 +27411,10 @@ var _lucamug$elm_style_framework$Framework$viewContentColumn = function (model) 
 				}));
 	}
 };
-var _lucamug$elm_style_framework$Framework$MsgSelectThis = function (a) {
+var _puruzio$elm_style_framework$Framework$MsgSelectThis = function (a) {
 	return {ctor: 'MsgSelectThis', _0: a};
 };
-var _lucamug$elm_style_framework$Framework$viewListVariationForMenu = F2(
+var _puruzio$elm_style_framework$Framework$viewListVariationForMenu = F2(
 	function (introspection, variations) {
 		return A2(
 			_elm_lang$core$List$map,
@@ -31227,7 +27429,7 @@ var _lucamug$elm_style_framework$Framework$viewListVariationForMenu = F2(
 						_1: {
 							ctor: '::',
 							_0: _mdgriffith$stylish_elephants$Element_Events$onClick(
-								_lucamug$elm_style_framework$Framework$MsgSelectThis(
+								_puruzio$elm_style_framework$Framework$MsgSelectThis(
 									{
 										ctor: '_Tuple2',
 										_0: introspection,
@@ -31240,12 +27442,12 @@ var _lucamug$elm_style_framework$Framework$viewListVariationForMenu = F2(
 			},
 			variations);
 	});
-var _lucamug$elm_style_framework$Framework$MsgCloseAll = {ctor: 'MsgCloseAll'};
-var _lucamug$elm_style_framework$Framework$MsgOpenAll = {ctor: 'MsgOpenAll'};
-var _lucamug$elm_style_framework$Framework$MsgToggleSection = function (a) {
+var _puruzio$elm_style_framework$Framework$MsgCloseAll = {ctor: 'MsgCloseAll'};
+var _puruzio$elm_style_framework$Framework$MsgOpenAll = {ctor: 'MsgOpenAll'};
+var _puruzio$elm_style_framework$Framework$MsgToggleSection = function (a) {
 	return {ctor: 'MsgToggleSection', _0: a};
 };
-var _lucamug$elm_style_framework$Framework$viewIntrospectionForMenu = F2(
+var _puruzio$elm_style_framework$Framework$viewIntrospectionForMenu = F2(
 	function (introspection, open) {
 		return A2(
 			_mdgriffith$stylish_elephants$Element$column,
@@ -31265,7 +27467,7 @@ var _lucamug$elm_style_framework$Framework$viewIntrospectionForMenu = F2(
 						_1: {
 							ctor: '::',
 							_0: _mdgriffith$stylish_elephants$Element_Events$onClick(
-								_lucamug$elm_style_framework$Framework$MsgToggleSection(introspection.name)),
+								_puruzio$elm_style_framework$Framework$MsgToggleSection(introspection.name)),
 							_1: {
 								ctor: '::',
 								_0: _mdgriffith$stylish_elephants$Element$width(_mdgriffith$stylish_elephants$Element$fill),
@@ -31360,20 +27562,20 @@ var _lucamug$elm_style_framework$Framework$viewIntrospectionForMenu = F2(
 									_elm_lang$html$Html_Attributes$class('elmStyleguideGenerator-close')),
 								_1: {ctor: '[]'}
 							}),
-						A2(_lucamug$elm_style_framework$Framework$viewListVariationForMenu, introspection, introspection.variations)),
+						A2(_puruzio$elm_style_framework$Framework$viewListVariationForMenu, introspection, introspection.variations)),
 					_1: {ctor: '[]'}
 				}
 			});
 	});
-var _lucamug$elm_style_framework$Framework$viewMenuColumn = function (model) {
+var _puruzio$elm_style_framework$Framework$viewMenuColumn = function (model) {
 	return A2(
 		_mdgriffith$stylish_elephants$Element$column,
 		{
 			ctor: '::',
-			_0: _mdgriffith$stylish_elephants$Element_Background$color(_lucamug$elm_style_framework$Framework$conf.gray3),
+			_0: _mdgriffith$stylish_elephants$Element_Background$color(_puruzio$elm_style_framework$Framework$conf.gray3),
 			_1: {
 				ctor: '::',
-				_0: _mdgriffith$stylish_elephants$Element_Font$color(_lucamug$elm_style_framework$Framework$conf.grayB),
+				_0: _mdgriffith$stylish_elephants$Element_Font$color(_puruzio$elm_style_framework$Framework$conf.grayB),
 				_1: {
 					ctor: '::',
 					_0: _mdgriffith$stylish_elephants$Element$width(_mdgriffith$stylish_elephants$Element$fill),
@@ -31385,7 +27587,7 @@ var _lucamug$elm_style_framework$Framework$viewMenuColumn = function (model) {
 							_0: _mdgriffith$stylish_elephants$Element$spacing(30),
 							_1: {
 								ctor: '::',
-								_0: A2(_mdgriffith$stylish_elephants$Element$paddingXY, _lucamug$elm_style_framework$Framework$conf.mainPadding, _lucamug$elm_style_framework$Framework$conf.mainPadding),
+								_0: A2(_mdgriffith$stylish_elephants$Element$paddingXY, _puruzio$elm_style_framework$Framework$conf.mainPadding, _puruzio$elm_style_framework$Framework$conf.mainPadding),
 								_1: {
 									ctor: '::',
 									_0: _mdgriffith$stylish_elephants$Element$height(_mdgriffith$stylish_elephants$Element$fill),
@@ -31408,7 +27610,7 @@ var _lucamug$elm_style_framework$Framework$viewMenuColumn = function (model) {
 				},
 				{
 					ctor: '::',
-					_0: A2(_lucamug$elm_style_framework$Framework$viewLogo, _lucamug$elm_style_framework$Framework$conf.logo, _lucamug$elm_style_framework$Framework$conf.version),
+					_0: A2(_puruzio$elm_style_framework$Framework$viewLogo, _puruzio$elm_style_framework$Framework$conf.logo, _puruzio$elm_style_framework$Framework$conf.version),
 					_1: {
 						ctor: '::',
 						_0: A2(
@@ -31436,7 +27638,7 @@ var _lucamug$elm_style_framework$Framework$viewMenuColumn = function (model) {
 										_0: _mdgriffith$stylish_elephants$Element$pointer,
 										_1: {
 											ctor: '::',
-											_0: _mdgriffith$stylish_elephants$Element_Events$onClick(_lucamug$elm_style_framework$Framework$MsgOpenAll),
+											_0: _mdgriffith$stylish_elephants$Element_Events$onClick(_puruzio$elm_style_framework$Framework$MsgOpenAll),
 											_1: {ctor: '[]'}
 										}
 									},
@@ -31450,7 +27652,7 @@ var _lucamug$elm_style_framework$Framework$viewMenuColumn = function (model) {
 											_0: _mdgriffith$stylish_elephants$Element$pointer,
 											_1: {
 												ctor: '::',
-												_0: _mdgriffith$stylish_elephants$Element_Events$onClick(_lucamug$elm_style_framework$Framework$MsgCloseAll),
+												_0: _mdgriffith$stylish_elephants$Element_Events$onClick(_puruzio$elm_style_framework$Framework$MsgCloseAll),
 												_1: {ctor: '[]'}
 											}
 										},
@@ -31482,14 +27684,14 @@ var _lucamug$elm_style_framework$Framework$viewMenuColumn = function (model) {
 						_elm_lang$core$List$map,
 						function (_p27) {
 							var _p28 = _p27;
-							return A2(_lucamug$elm_style_framework$Framework$viewIntrospectionForMenu, _p28._0, _p28._1);
+							return A2(_puruzio$elm_style_framework$Framework$viewIntrospectionForMenu, _p28._0, _p28._1);
 						},
 						model.introspections)),
 				_1: {ctor: '[]'}
 			}
 		});
 };
-var _lucamug$elm_style_framework$Framework$viewPage = F2(
+var _puruzio$elm_style_framework$Framework$viewPage = F2(
 	function (maybeWindowSize, model) {
 		return A2(
 			_mdgriffith$stylish_elephants$Element$row,
@@ -31519,7 +27721,7 @@ var _lucamug$elm_style_framework$Framework$viewPage = F2(
 						{ctor: '[]'},
 						{
 							ctor: '::',
-							_0: _elm_lang$html$Html$text(_lucamug$elm_style_framework$Framework$css),
+							_0: _elm_lang$html$Html$text(_puruzio$elm_style_framework$Framework$css),
 							_1: {ctor: '[]'}
 						})),
 				_1: {
@@ -31544,7 +27746,7 @@ var _lucamug$elm_style_framework$Framework$viewPage = F2(
 								}
 							}
 						},
-						_lucamug$elm_style_framework$Framework$viewMenuColumn(model)),
+						_puruzio$elm_style_framework$Framework$viewMenuColumn(model)),
 					_1: {
 						ctor: '::',
 						_0: A2(
@@ -31566,13 +27768,13 @@ var _lucamug$elm_style_framework$Framework$viewPage = F2(
 									}
 								}
 							},
-							_lucamug$elm_style_framework$Framework$viewContentColumn(model)),
+							_puruzio$elm_style_framework$Framework$viewContentColumn(model)),
 						_1: {ctor: '[]'}
 					}
 				}
 			});
 	});
-var _lucamug$elm_style_framework$Framework$view = function (model) {
+var _puruzio$elm_style_framework$Framework$view = function (model) {
 	return A3(
 		_mdgriffith$stylish_elephants$Element$layoutWith,
 		{
@@ -31581,7 +27783,7 @@ var _lucamug$elm_style_framework$Framework$view = function (model) {
 				_0: _mdgriffith$stylish_elephants$Element$focusStyle(
 					{
 						borderColor: _elm_lang$core$Maybe$Just(
-							_lucamug$elm_style_framework$Framework_Color$color(_lucamug$elm_style_framework$Framework_Color$Primary)),
+							_puruzio$elm_style_framework$Framework_Color$color(_puruzio$elm_style_framework$Framework_Color$Primary)),
 						backgroundColor: _elm_lang$core$Maybe$Nothing,
 						shadow: _elm_lang$core$Maybe$Nothing
 					}),
@@ -31610,7 +27812,7 @@ var _lucamug$elm_style_framework$Framework$view = function (model) {
 				_0: _mdgriffith$stylish_elephants$Element_Font$size(16),
 				_1: {
 					ctor: '::',
-					_0: _mdgriffith$stylish_elephants$Element_Font$color(_lucamug$elm_style_framework$Framework$conf.gray3),
+					_0: _mdgriffith$stylish_elephants$Element_Font$color(_puruzio$elm_style_framework$Framework$conf.gray3),
 					_1: {
 						ctor: '::',
 						_0: _mdgriffith$stylish_elephants$Element_Background$color(_elm_lang$core$Color$white),
@@ -31625,7 +27827,7 @@ var _lucamug$elm_style_framework$Framework$view = function (model) {
 										_1: {
 											ctor: '::',
 											_0: _mdgriffith$stylish_elephants$Element_Font$color(
-												_lucamug$elm_style_framework$Framework_Color$color(_lucamug$elm_style_framework$Framework_Color$Primary)),
+												_puruzio$elm_style_framework$Framework_Color$color(_puruzio$elm_style_framework$Framework_Color$Primary)),
 											_1: {ctor: '[]'}
 										}
 									},
@@ -31651,7 +27853,7 @@ var _lucamug$elm_style_framework$Framework$view = function (model) {
 				}
 			}
 		},
-		(_elm_lang$core$Native_Utils.eq(model.location.hostname, 'localhost') || _elm_lang$core$Native_Utils.eq(model.p, _lucamug$elm_style_framework$Framework$conf.p)) ? A2(_lucamug$elm_style_framework$Framework$viewPage, model.maybeWindowSize, model) : A2(
+		(_elm_lang$core$Native_Utils.eq(model.location.hostname, 'localhost') || _elm_lang$core$Native_Utils.eq(model.p, _puruzio$elm_style_framework$Framework$conf.p)) ? A2(_puruzio$elm_style_framework$Framework$viewPage, model.maybeWindowSize, model) : A2(
 			_mdgriffith$stylish_elephants$Element$column,
 			{
 				ctor: '::',
@@ -31691,14 +27893,14 @@ var _lucamug$elm_style_framework$Framework$view = function (model) {
 									_1: {
 										ctor: '::',
 										_0: _mdgriffith$stylish_elephants$Element_Border$color(
-											_lucamug$elm_style_framework$Framework_Color$color(_lucamug$elm_style_framework$Framework_Color$GrayLight)),
+											_puruzio$elm_style_framework$Framework_Color$color(_puruzio$elm_style_framework$Framework_Color$GrayLight)),
 										_1: {ctor: '[]'}
 									}
 								}
 							}
 						},
 						{
-							onChange: _elm_lang$core$Maybe$Just(_lucamug$elm_style_framework$Framework$MsgChangeP),
+							onChange: _elm_lang$core$Maybe$Just(_puruzio$elm_style_framework$Framework$MsgChangeP),
 							text: model.p,
 							placeholder: _elm_lang$core$Maybe$Nothing,
 							label: A2(
@@ -31714,10 +27916,10 @@ var _lucamug$elm_style_framework$Framework$view = function (model) {
 				}
 			}));
 };
-var _lucamug$elm_style_framework$Framework$main = A2(
+var _puruzio$elm_style_framework$Framework$main = A2(
 	_elm_lang$navigation$Navigation$programWithFlags,
-	_lucamug$elm_style_framework$Framework$MsgChangeUrl,
-	{init: _lucamug$elm_style_framework$Framework$init, view: _lucamug$elm_style_framework$Framework$view, update: _lucamug$elm_style_framework$Framework$update, subscriptions: _lucamug$elm_style_framework$Framework$subscriptions})(
+	_puruzio$elm_style_framework$Framework$MsgChangeUrl,
+	{init: _puruzio$elm_style_framework$Framework$init, view: _puruzio$elm_style_framework$Framework$view, update: _puruzio$elm_style_framework$Framework$update, subscriptions: _puruzio$elm_style_framework$Framework$subscriptions})(
 	A2(
 		_elm_lang$core$Json_Decode$andThen,
 		function (height) {
@@ -31738,8 +27940,8 @@ var _lucamug$elm_style_framework$Framework$main = A2(
 
 var Elm = {};
 Elm['Framework'] = Elm['Framework'] || {};
-if (typeof _lucamug$elm_style_framework$Framework$main !== 'undefined') {
-    _lucamug$elm_style_framework$Framework$main(Elm['Framework'], 'Framework', {"types":{"unions":{"Framework.Form.Field":{"args":[],"tags":{"FieldTelephone":[],"FieldCreditCard":[]}},"Framework.Form.Msg":{"args":[],"tags":{"OnFocus":["Framework.Form.Field"],"Input":["Framework.Form.Field","String","String"],"Button":[],"Radio":["String"],"OnLoseFocus":["Framework.Form.Field"],"Checkbox":["Bool"]}},"Internal.Model.Font":{"args":[],"tags":{"Serif":[],"Typeface":["String"],"SansSerif":[],"Monospace":[],"ImportFont":["String","String"]}},"Color.Color":{"args":[],"tags":{"HSLA":["Float","Float","Float","Float"],"RGBA":["Int","Int","Int","Float"]}},"Internal.Model.PseudoClass":{"args":[],"tags":{"Focus":[],"Active":[],"Hover":[]}},"Internal.Model.Element":{"args":["msg"],"tags":{"Text":["String"],"Empty":[],"Styled":["{ styles : List Internal.Model.Style , html : Maybe.Maybe String -> Internal.Model.LayoutContext -> Html.Html msg }"],"Unstyled":["Internal.Model.LayoutContext -> Html.Html msg"]}},"Maybe.Maybe":{"args":["a"],"tags":{"Just":["a"],"Nothing":[]}},"Framework.StyleElementsInput.Msg":{"args":[],"tags":{"Input":["String"],"Button":[],"Radio":["String"],"Checkbox":["Bool"]}},"Internal.Model.Transformation":{"args":[],"tags":{"Scale":["Float","Float","Float"],"Rotate":["Float","Float","Float","Float"],"Move":["Maybe.Maybe Float","Maybe.Maybe Float","Maybe.Maybe Float"]}},"VirtualDom.Node":{"args":["msg"],"tags":{"Node":[]}},"Internal.Model.Length":{"args":[],"tags":{"Content":[],"Fill":["Int"],"FillBetween":["{ portion : Int, min : Maybe.Maybe Int, max : Maybe.Maybe Int }"],"Px":["Int"]}},"Internal.Model.Style":{"args":[],"tags":{"Transform":["Internal.Model.Transformation"],"Style":["String","List Internal.Model.Property"],"GridTemplateStyle":["{ spacing : ( Internal.Model.Length, Internal.Model.Length ) , columns : List Internal.Model.Length , rows : List Internal.Model.Length }"],"Shadows":["String","String"],"PseudoSelector":["Internal.Model.PseudoClass","List Internal.Model.Style"],"FontFamily":["String","List Internal.Model.Font"],"Transparency":["String","Float"],"FontSize":["Int"],"GridPosition":["{ row : Int, col : Int, width : Int, height : Int }"],"Colored":["String","String","Color.Color"],"Single":["String","String","String"],"PaddingStyle":["Int","Int","Int","Int"],"SpacingStyle":["Int","Int"],"LineHeight":["Float"]}},"Internal.Model.Property":{"args":[],"tags":{"Property":["String","String"]}},"Internal.Model.LayoutContext":{"args":[],"tags":{"AsColumn":[],"AsEl":[],"AsTextColumn":[],"AsParagraph":[],"AsGrid":[],"AsRow":[]}},"Framework.Msg":{"args":[],"tags":{"MsgOpenAll":[],"MsgChangeUrl":["Navigation.Location"],"MsgChangeP":["String"],"MsgSelectThis":["( Framework.Introspection, Framework.Variation )"],"MsgForm":["Framework.Form.Msg"],"MsgGoTop":[],"MsgToggleSection":["String"],"MsgStyleElementsInput":["Framework.StyleElementsInput.Msg"],"MsgChangeWindowSize":["Window.Size"],"MsgCloseAll":[]}}},"aliases":{"Framework.SubSection":{"args":[],"type":"( Element.Element Framework.Msg, String )"},"Framework.Introspection":{"args":[],"type":"{ name : String , signature : String , description : String , usage : String , usageResult : Element.Element Framework.Msg , variations : List Framework.Variation , boxed : Bool }"},"Framework.Variation":{"args":[],"type":"( String, List Framework.SubSection )"},"Element.Element":{"args":["msg"],"type":"Internal.Model.Element msg"},"Window.Size":{"args":[],"type":"{ width : Int, height : Int }"},"Html.Html":{"args":["msg"],"type":"VirtualDom.Node msg"},"Navigation.Location":{"args":[],"type":"{ href : String , host : String , hostname : String , protocol : String , origin : String , port_ : String , pathname : String , search : String , hash : String , username : String , password : String }"}},"message":"Framework.Msg"},"versions":{"elm":"0.18.0"}});
+if (typeof _puruzio$elm_style_framework$Framework$main !== 'undefined') {
+    _puruzio$elm_style_framework$Framework$main(Elm['Framework'], 'Framework', undefined);
 }
 
 if (typeof define === "function" && define['amd'])
