@@ -1,5 +1,5 @@
 {
-    "version": "5.0.1",
+    "version": "5.0.2",
     "summary": "A simple Style Framework built on top of style-elements",
     "repository": "https://github.com/puruzio/elm-style-framework.git",
     "license": "BSD3",
