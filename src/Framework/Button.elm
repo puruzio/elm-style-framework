@@ -377,11 +377,11 @@ buttonAttr modifiers =
     in
         [ Font.size fontSize
         , Font.color fontColor
-        , mouseOver
-            [ Font.color fontMouseOverColor
-            , Background.color backgroundMouseOverColor
-            , Border.color borderMouseOverColor
-            ]
+          -- , mouseOver
+          --     [ Font.color fontMouseOverColor
+          --     , Background.color backgroundMouseOverColor
+          --     , Border.color borderMouseOverColor
+          --     ]
         , Background.color backgroundColor
         , paddingXY (Tuple.first buttonPadding) (Tuple.second buttonPadding)
         , Border.rounded borderRounded
